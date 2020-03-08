@@ -1,0 +1,203 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.JobOrderStatusMapper">
+
+	<!-- 조립 시작 -->
+	<update id="assembleStart" parameterType="HashMap">
+	
+		update job_order set
+			assembly_start = NOW(),
+			assembly_status = 'I',
+			assembly_id = #{setuser} ,
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id} 
+
+	</update>
+
+	<!-- 조립 상태 홀드 -->
+	<update id="assembleHoldSet" parameterType="HashMap">
+		update job_order set
+			assembly_status = #{ atype },
+			note = CONCAT(note, '&lt;br&gt;&lt;font color=&quot;red&quot;&gt;조립중지:', #{ reason }, '&lt;/font&gt;'),
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id} 
+	</update>
+
+	<!-- 조립 완료처리 -->
+	<update id="assembleCompleteSet" parameterType="HashMap">
+		update job_order set
+			assembly_status = 'F',
+			assembly_end = NOW(),
+			assembly_progress = 100,
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id};
+
+	</update>
+
+	<!-- 조립 진행율 변경 -->
+	<update id="assembleUpdateProg" parameterType="HashMap">
+		update job_order set
+			assembly_progress = #{assambleProg},
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id};
+	</update>
+	
+	<!-- 조립 완료처리 -->
+	<update id="setupStart" parameterType="HashMap">
+		update job_order set
+			current_stage = 'B',
+			design_progress=100,
+			assembly_progress = 100,
+			program_progress = 100,
+			process_progress = 100,
+			purchase_progress = 100,
+			setup_id = #{setup_id},
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id};
+
+	</update>
+
+	<!-- 프로그램 시작 -->
+	<update id="programStart" parameterType="HashMap">
+	
+		update job_order set
+			program_start = NOW(),
+			program_status = 'I',
+			pgm_id = #{setuser} ,
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id} 
+
+	</update>
+
+	<!-- 프로그램 상태 홀드 -->
+	<update id="programHoldSet" parameterType="HashMap">
+		update job_order set
+			program_status = #{ atype },
+			note = CONCAT(note, '&lt;br&gt;&lt;font color=&quot;red&quot;&gt;프로그램중지:', #{ reason }, '&lt;/font&gt;'),
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id} 
+	</update>
+
+	<!-- 프로그램 완료처리 -->
+	<update id="programCompleteSet" parameterType="HashMap">
+		update job_order set
+			program_status = 'F',
+			program_end = NOW(),
+			program_progress = 100,
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id};
+
+	</update>
+
+	<!-- 프로그램 진행율 변경 -->
+	<update id="programUpdateProg" parameterType="HashMap">
+		update job_order set
+			program_progress = #{progValue},
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id};
+	</update>
+
+	<!-- 설계 시작 -->
+	<update id="designStart" parameterType="HashMap">
+		update job_order set 
+			design_user_id = #{setuser},
+			design_start = NOW(),
+			design_status = 'I',
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id}
+	</update>
+
+	<!-- 설계 상태 홀드 -->
+	<update id="designHoldSet" parameterType="HashMap">
+		update job_order set
+			design_status = #{ atype },
+			note = CONCAT(note, '&lt;br&gt;&lt;font color=&quot;red&quot;&gt;설계중지:', #{ reason }, '&lt;/font&gt;'),
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id} 
+	</update>
+
+	<!-- 설계 완료처리 -->
+	<update id="designCompleteSet" parameterType="HashMap">
+		update job_order set
+			design_status = 'F',
+			design_end = NOW(),
+			design_progress = 100,
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id};
+
+	</update>
+
+	<!-- 설계 진행율 변경 -->
+	<update id="designUpdateProg" parameterType="HashMap">
+		update job_order set
+			design_progress = #{assambleProg},
+			last_modified_user_id = #{updateuser},
+			last_modified_when = NOW()
+		where id = #{id};
+	</update>
+	
+	<!-- 설계 시작 날짜 select -->
+	<select id="getStartDateOrder"  parameterType="Long" resultType="String">
+		select design_start from job_order where id = #{id}
+		
+	</select>
+	
+	<!-- 도면 출도 날짜 select -->
+	<select id="getEndtDateOrder"  parameterType="Long" resultType="String">
+		select design_end from job_order where id = #{id}
+		
+	</select>
+	
+	<select id="getStartDateOrderA"  parameterType="Long" resultType="String">
+		select assembly_start from job_order where id = #{id}
+		
+	</select>
+	
+	<!-- 도면 출도 날짜 select -->
+	<select id="getEndtDateOrderA"  parameterType="Long" resultType="String">
+		select assembly_end from job_order where id = #{id}
+		
+	</select>
+	
+	<select id="getStartDateOrderP"  parameterType="Long" resultType="String">
+		select program_start from job_order where id = #{id}
+		
+	</select>
+	
+	<!-- 도면 출도 날짜 select -->
+	<select id="getEndtDateOrderP"  parameterType="Long" resultType="String">
+		select program_end from job_order where id = #{id}
+		
+	</select>
+	
+	<insert id="insertWageRate" parameterType="HashMap">
+		insert into job_wage_rate
+		(job_order_id,
+		design_user_id,
+		assembly_user_id,
+		program_user_id,
+		work_day,
+		work_kind)
+		
+		values
+		(#{id},
+		#{designUserId},
+		#{assemblyUserId},
+		#{programUserId},
+		#{workDay},
+		#{workKind})
+	</insert>
+	
+</mapper>

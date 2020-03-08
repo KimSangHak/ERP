@@ -1,0 +1,94 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.JobDesignDrawingEstimateMapper">
+
+	<select id="getOrderIdCount" parameterType="HashMap" resultType="Long">
+		select count(id)
+		from (
+			select id, count(*)
+			from job_partner_outsourcing_order
+			where 
+				request_type = #{requestType} and 
+				<!-- partner_id = #{outsourcingPartnerId} and --> 
+				id like concat(#{estimateIdInitial}, '%')
+			group by id ) src;
+	</select>
+	
+	<!-- 견적 발주 기록 -->
+	<insert id="insertEstimate" parameterType="HashMap">
+		insert into job_partner_outsourcing_order
+			(request_type, partner_id, id, 
+				job_design_drawing_id, 
+				request_date, 
+				delivery_date, delivery_plan_date, drawing_url, with_postprocessing,
+				job_order_id, quantity, spare)
+		values( 'E', #{outsourcingPartnerId}, #{estimateId}, 
+				#{drawingId}, 
+				#{requested}, 
+				null, #{deliveryDate}, #{drawingUrl}, #{withPostprocessing}
+				, (select order_id from job_design_drawing where job_design_drawing.id = #{drawingId})
+				, (select quantity from job_design_drawing where job_design_drawing.id = #{drawingId})
+				, (select spare from job_design_drawing where job_design_drawing.id = #{drawingId}));
+	</insert>
+	
+	<!-- 가공 발주 기록 -->
+	<insert id="insertProcessOrder" parameterType="HashMap">
+		insert into job_partner_outsourcing_order
+			(request_type, partner_id, id, 
+				job_design_drawing_id, 
+				request_date, 
+				delivery_date, delivery_plan_date,
+				<if test="drawingUrl != null">
+					drawing_url,
+				</if>
+				with_postprocessing, unit_price, job_order_id, quantity, spare)
+		values( 'P', #{outsourcingPartnerId}, #{estimateId}, 
+				#{drawingId}, 
+				#{requested}, 
+				null, #{deliveryDate},
+				<if test="drawingUrl != null">
+					#{drawingUrl},
+				</if>
+				#{withPostprocessing}, #{unitPrice}
+				, (select order_id from job_design_drawing where job_design_drawing.id = #{drawingId})
+				, (select quantity from job_design_drawing where job_design_drawing.id = #{drawingId})
+				, (select spare from job_design_drawing where job_design_drawing.id = #{drawingId})
+				);
+	</insert>
+	
+	<!-- 후처리 발주 기록 -->
+	<insert id="insertPostprocessOrder" parameterType="HashMap">
+	
+		insert into job_partner_outsourcing_order
+			(request_type, partner_id, 
+			id, 
+			job_design_drawing_id, request_date, delivery_date, delivery_plan_date, job_order_id, quantity, spare, unit_price)
+		values
+			('C', #{outsourcingPartnerId}, 
+			#{outsourcingId},
+			#{drawingId}, #{requested}, null, #{deliveryDate}
+			, (select order_id from job_design_drawing where job_design_drawing.id = #{drawingId})
+			, (select quantity from job_design_drawing where job_design_drawing.id = #{drawingId})
+			, (select spare from job_design_drawing where job_design_drawing.id = #{drawingId})
+			, 0
+			);
+	
+	</insert>
+	
+	<select id="selectOutsourcingOrder" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPartnerOutsourcingOrder">
+	
+		select *
+		from job_partner_outsourcing_order
+		where id = #{id} and job_drawing_id = #{jobDrawingId} and request_type = #{requestType} and partner_id = #{partnerId}
+	
+	</select>
+	
+	<select id="selectOutsourcingOrderDevices" parameterType="HashMap" resultType="Long">
+	
+	
+	</select>
+	
+	<select id="selectJobOrderId" parameterType="HashMap" resultType="Long">
+	</select>
+</mapper>
+ 

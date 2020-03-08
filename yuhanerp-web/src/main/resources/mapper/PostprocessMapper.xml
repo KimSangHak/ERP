@@ -1,0 +1,501 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.PostprocessMapper">
+
+
+	<!-- 후처리 관리 - 후처리 등록 리스트 -->
+	<select id="selectPostprocessListCount" parameterType="HashMap" resultType="Integer">
+		select
+			count(*)			
+		from 	job_design_drawing DRAWING 
+					inner join job_order JOB on DRAWING.order_id = JOB.id
+					left outer join job_inspect INSPECT on DRAWING.inspect_id = INSPECT.id 
+					left outer join job_partner_outsourcing_order ORD on (DRAWING.outsourcing_request_id = ORD.id and ORD.job_design_drawing_id = DRAWING.id and request_type= 'P' and DRAWING.outsourcing_partner_id = ORD.partner_id)  
+		where 
+			DRAWING.current_stage = 'B' 
+			and DRAWING.work_status = 'R' 
+			and DRAWING.process_completed = 'Y' 
+			and DRAWING.coating_stage = 'N' 
+			and DRAWING.postprocessing is not null 
+			<if test="processSourcing != null">
+			and DRAWING.work_position = #{processSourcing}
+			</if>
+			
+			<if test="device != null">
+				and device like concat('%', #{device}, '%') 
+			</if>
+			<if test="orderNoBase != null">
+				and DRAWING.order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and DRAWING.order_no_extra like concat('%', #{orderNoExtra}, '%')
+			</if>			
+			<if test="outsourcingPartnerId != null">
+				and DRAWING.outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and ORD.requested_date between #{orderDateFrom} and date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and ORD.requested_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and ORD.requested_date <![CDATA[ < ]]> date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+			</choose> 		
+			<if test="designDrawingIdList != null">
+				and DRAWING.id in 
+				<foreach collection="designDrawingIdList" separator="," open="(" close=")" item="designDrawingId">
+					#{designDrawingId}
+				</foreach>
+			</if> 			
+				
+	</select>
+	
+	
+	<select id="selectPostprocessList" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+	
+		select
+			DRAWING.id
+			, FN_GetDisplayDrawingNo(DRAWING.order_type, DRAWING.order_no_base, DRAWING.order_no_extra, DRAWING.drawing_no) as design_drawing_no
+			, (case DRAWING.work_position when 'O' then FN_GetDisplayOutsourcingOrderNo(ORD.partner_id, ORD.request_type, ORD.id) end) as outsourcing_order_no
+			, FN_GetUserName(JOB.design_user_id) as design_user_name 
+			, description
+			, dimension
+			, material
+			, thermal
+			, DRAWING.quantity
+			, DRAWING.spare
+			, postprocessing
+			, classification
+			, reason
+			, checking
+			, DRAWING.note
+		
+			, FN_GetDrawingCurrentStatus(DRAWING.current_stage) as current_stage
+			, DRAWING.work_status
+			, work_quantity
+			, work_position
+			
+			, outsourcing_partner_id
+			, (select partner_name from job_partner where id = outsourcing_partner_id) as outsourcing_partner_name
+			
+			, outsourcing_request_id
+			, process_finish_date
+			, process_finish_plan_date
+			, coating_date
+			, inspect_date
+			, ORD.drawing_url
+			, DRAWING.hold_reason
+			
+			, (select hash from registered_file where id = (select result_file_id from job_inspect where job_inspect.id = inspect_id)) as inspect_file_hash
+			, (select result_ok from job_inspect where id=DRAWING.inspect_id)  as test_result			
+			
+			, FN_GetCustomerName(JOB.customer_id)
+		from 	job_design_drawing DRAWING 
+					inner join job_order JOB on DRAWING.order_id = JOB.id
+					left outer join job_partner_outsourcing_order ORD on (DRAWING.outsourcing_request_id = ORD.id and ORD.job_design_drawing_id = DRAWING.id and request_type= 'P' and DRAWING.outsourcing_partner_id = ORD.partner_id)  
+		where 
+			DRAWING.current_stage = 'B' 
+			and DRAWING.work_status = 'R' 
+			and DRAWING.process_completed = 'Y' 
+			and DRAWING.coating_stage = 'N' 
+			and DRAWING.postprocessing is not null 
+			<if test="processSourcing != null">
+			and DRAWING.work_position = #{processSourcing} 
+			</if>
+			
+			<if test="device != null">
+				and device like concat('%', #{device}, '%') 
+			</if>
+			<if test="orderNoBase != null">
+				and DRAWING.order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and DRAWING.order_no_extra like concat('%', #{orderNoExtra}, '%')
+			</if>			
+			<if test="outsourcingPartnerId != null">
+				and DRAWING.outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and ORD.requested_date between #{orderDateFrom} and date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and ORD.requested_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and ORD.requested_date <![CDATA[ < ]]> date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+			</choose>
+			<if test="designDrawingIdList != null">
+				and DRAWING.id in 
+				<foreach collection="designDrawingIdList" separator="," open="(" close=")" item="designDrawingId">
+					#{designDrawingId}
+				</foreach>
+			</if> 			
+			
+		order by DRAWING.order_no_base, DRAWING.order_no_extra, DRAWING.drawing_no, DRAWING.outsourcing_request_id 
+		
+		
+		<if test="length != null and length != -1">
+			limit #{start}, #{length}
+		</if>
+	</select>	
+
+	<!-- 특정 도면을 후처리 스킵 처리 -->
+	<update id="updatePostprocessSkip">
+	
+		update job_design_drawing
+			set 
+				current_stage = 'G',
+				work_status = 'I',
+				coating_stage = 'S'
+								
+			where
+				id in
+				<foreach collection="designDrawingIdList" separator="," open="(" close=")" item="designDrawingId">
+					#{designDrawingId}
+				</foreach>
+	</update>
+	
+	<!-- 후처리 스킵 리스트 카운트 -->
+	<select id="selectSkipListCount" resultType="Integer">
+		select 
+			count(*)
+		from 
+			job_order JOB
+				inner join			
+			job_design_drawing DRAWING
+				on JOB.id = DRAWING.order_id 
+				left outer join 
+			job_partner_outsourcing_order OUTSOURCING 
+				on (DRAWING.coating_request_id = OUTSOURCING.id and OUTSOURCING.request_type = 'C')
+				left outer join
+			job_inspect INSPECT
+				on (DRAWING.inspect_id = INSPECT.id)
+				
+		where
+			JOB.deleted = 'N' 
+			and DRAWING.current_stage = 'B' 
+			and DRAWING.work_status = 'R' 
+			and DRAWING.coating_stage = 'S'
+			and DRAWING.postprocessing is not null
+
+			<if test="designDrawingIdList != null">
+				and DRAWING.id in 
+				<foreach collection="designDrawingIdList" separator="," open="(" close=")" item="designDrawingId">
+					#{designDrawingId}
+				</foreach>
+			</if>
+			 			
+			<if test="device != null">
+				and device like concat('%', #{device}, '%') 
+			</if>
+			<if test="orderNoBase != null">
+				and DRAWING.order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and DRAWING.order_no_extra like concat('%', #{orderNoExtra}, '%')
+			</if>			
+			<if test="outsourcingPartnerId != null">
+				and DRAWING.outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and ORD.requested_date between #{orderDateFrom} and date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and ORD.requested_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and ORD.requested_date <![CDATA[ < ]]> date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+			</choose> 		
+	</select>
+	
+	<!-- 후처리 스킵 리스트 -->
+	<select id="selectSkipList" parameterType="HashMap" resultType="com.yuhannci.erp.model.PostprocessSkipListEntry">
+		select 
+			DRAWING.id as drawing_id
+			, JOB.device
+			, DRAWING.description
+			, DRAWING.dimension
+			, FN_GetDisplayDrawingNo(DRAWING.order_type, DRAWING.order_no_base, DRAWING.order_no_extra, DRAWING.drawing_no) as design_drawing_no
+			, coating_request_id as outsourcingRequestId
+			, FN_GetUserName(JOB.design_user_id) as design_user_name 
+			, material
+			, thermal
+			, DRAWING.quantity
+			, DRAWING.spare
+			, postprocessing
+			, FN_GetPartnerName(OUTSOURCING.partner_id) as outsourcing_partner_name
+			, OUTSOURCING.request_date as outsourcing_request_date
+			, checking
+			, inspect_date
+			, INSPECT.result_ok
+			, (select hash from registered_file where id = (select result_file_id from job_inspect where job_inspect.id = inspect_id)) as inspect_file_hash
+			, FN_GetDrawingCurrentStatus(DRAWING.current_stage) as current_stage
+			, FN_GetCustomerName(JOB.customer_id) as customer_name
+		from 
+			job_order JOB
+				inner join			
+			job_design_drawing DRAWING
+				on JOB.id = DRAWING.order_id 
+				left outer join 
+			job_partner_outsourcing_order OUTSOURCING 
+				on (DRAWING.coating_request_id = OUTSOURCING.id and OUTSOURCING.request_type = 'C')
+				left outer join
+			job_inspect INSPECT
+				on (DRAWING.inspect_id = INSPECT.id)
+				
+		where
+			JOB.deleted = 'N' 
+			and DRAWING.current_stage = 'B' 
+			and DRAWING.work_status = 'R' 
+			and DRAWING.coating_stage = 'S'
+			and DRAWING.postprocessing is not null
+			
+			<if test="designDrawingIdList != null">
+				and DRAWING.id in 
+				<foreach collection="designDrawingIdList" separator="," open="(" close=")" item="designDrawingId">
+					#{designDrawingId}
+				</foreach>
+			</if> 			
+			<if test="device != null">
+				and device like concat('%', #{device}, '%') 
+			</if>
+			<if test="orderNoBase != null">
+				and DRAWING.order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and DRAWING.order_no_extra like concat('%', #{orderNoExtra}, '%')
+			</if>			
+			<if test="outsourcingPartnerId != null">
+				and DRAWING.outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and ORD.requested_date between #{orderDateFrom} and date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and ORD.requested_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and ORD.requested_date <![CDATA[ < ]]> date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+			</choose> 					
+		<if test="length != null and length != -1">
+		
+			limit #{start}, #{length}
+		
+		</if>			
+	</select>
+	
+	<!-- 후처리 발주 리스트 -->
+	<select id="selectOrderList" parameterType="HashMap" resultType="com.yuhannci.erp.model.PostprocessSkipListEntry">
+		select 
+			DRAWING.id as drawing_id
+			, JOB.device
+			, DRAWING.description
+			, DRAWING.dimension
+			, FN_GetDisplayDrawingNo(DRAWING.order_type, DRAWING.order_no_base, DRAWING.order_no_extra, DRAWING.drawing_no) as design_drawing_no
+			, coating_request_id as outsourcingRequestId
+			, FN_GetUserName(JOB.design_user_id) as design_user_name 
+			, material
+			, thermal
+			, DRAWING.quantity
+			, DRAWING.spare
+			, postprocessing
+			, FN_GetPartnerName(OUTSOURCING.partner_id) as outsourcing_partner_name
+			, OUTSOURCING.request_date as outsourcing_request_date
+			, checking
+			, DRAWING.inspect_date
+			, INSPECT.result_ok
+			, (select hash from registered_file where id = (select result_file_id from job_inspect where job_inspect.id = inspect_id)) as inspect_file_hash
+			, FN_GetDrawingCurrentStatus(DRAWING.current_stage) as current_stage
+			, OUTSOURCING.delivery_plan_date
+		from 
+			job_order JOB
+				inner join			
+			job_design_drawing DRAWING
+				on JOB.id = DRAWING.order_id 
+				left outer join 
+			job_partner_outsourcing_order OUTSOURCING 
+				on (DRAWING.coating_request_id = OUTSOURCING.id and OUTSOURCING.request_type = 'C')
+				left outer join
+			job_inspect INSPECT
+				on (DRAWING.inspect_id = INSPECT.id)
+				
+		where
+			JOB.deleted = 'N' 
+			and DRAWING.current_stage = 'G' 
+			and DRAWING.work_status = 'I' 
+			
+			<if test="designDrawingIdList != null">
+				and DRAWING.id in 
+				<foreach collection="designDrawingIdList" separator="," open="(" close=")" item="designDrawingId">
+					#{designDrawingId}
+				</foreach>
+			</if> 			
+			<if test="device != null">
+				and device like concat('%', #{device}, '%') 
+			</if>
+			<if test="orderNoBase != null">
+				and DRAWING.order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and DRAWING.order_no_extra like concat('%', #{orderNoExtra}, '%')
+			</if>			
+			<if test="outsourcingPartnerId != null">
+				and DRAWING.outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and ORD.requested_date between #{orderDateFrom} and date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and ORD.requested_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and ORD.requested_date <![CDATA[ < ]]> date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+			</choose> 					
+		<if test="length != null and length != -1">
+		
+			limit #{start}, #{length}
+		
+		</if>			
+	</select>
+	
+	<select id="selectOrderListCount" resultType="Integer">
+		select 
+			count(*)
+		from 
+			job_order JOB
+				inner join			
+			job_design_drawing DRAWING
+				on JOB.id = DRAWING.order_id 
+				left outer join 
+			job_partner_outsourcing_order OUTSOURCING 
+				on (DRAWING.coating_request_id = OUTSOURCING.id and OUTSOURCING.request_type = 'C')
+				left outer join
+			job_inspect INSPECT
+				on (DRAWING.inspect_id = INSPECT.id)
+				
+		where
+			JOB.deleted = 'N' 
+			and DRAWING.current_stage = 'G' 
+			and DRAWING.work_status = 'I' 
+
+			<if test="designDrawingIdList != null">
+				and DRAWING.id in 
+				<foreach collection="designDrawingIdList" separator="," open="(" close=")" item="designDrawingId">
+					#{designDrawingId}
+				</foreach>
+			</if>
+			 			
+			<if test="device != null">
+				and device like concat('%', #{device}, '%') 
+			</if>
+			<if test="orderNoBase != null">
+				and DRAWING.order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and DRAWING.order_no_extra like concat('%', #{orderNoExtra}, '%')
+			</if>			
+			<if test="outsourcingPartnerId != null">
+				and DRAWING.outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and ORD.requested_date between #{orderDateFrom} and date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and ORD.requested_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and ORD.requested_date <![CDATA[ < ]]> date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+			</choose> 		
+	</select>
+	
+	<!-- 도면 원장에 후처리 발주 취소 처리 -->
+	<update id="updateCancelOrderMaster">
+	
+	
+		update job_design_drawing set
+			current_stage = 'B', 
+			work_status = 'R',
+			coating_stage = 'N',
+			coating_request_id = null,
+			coating_partner_id = null
+		where
+			id in 
+			<foreach collection="designDrawingIdList" separator="," open="(" close=")" item="designDrawingId">
+				#{designDrawingId}
+			</foreach>	
+
+	</update>
+	
+	<!-- 개별 발주 원장에 발주 취소 처리 -->
+	<update id="updateCancelOrder">
+		update job_partner_outsourcing_order set
+			request_type = 'D',
+			abort_reason = #{abortReason}
+		where
+			request_type = 'C' and
+			(id, job_design_drawing_id, partner_id) in 
+					(
+						select coating_request_id, id, coating_partner_id
+						from job_design_drawing
+						where
+							id in 
+							<foreach collection="designDrawingIdList" separator="," open="(" close=")" item="designDrawingId">
+								#{designDrawingId}
+							</foreach>
+					)
+					
+		
+	</update>
+	
+	<select id="selectDetailRequestInfo" resultType="com.yuhannci.erp.model.PostprocessRequestInfo">
+	
+		select 
+			OUTSRC.job_order_id
+			, FN_GetDisplayOrderNo(JOB.order_type, JOB.order_no_base, JOB.order_no_extra) as job_order_no
+			
+			, OUTSRC.request_date as requested_date
+			, delivery_plan_date as  due_date
+			, JOB.device
+		
+		from job_partner_outsourcing_order OUTSRC
+			inner join job_order JOB on JOB.id = OUTSRC.job_order_id
+		where
+			OUTSRC.partner_id = #{partnerId} and OUTSRC.request_type = 'C' and OUTSRC.id = #{postprocessRequestId}
+		limit 1
+	</select>
+	
+	<select id="selectDetailRequestList" resultType="com.yuhannci.erp.model.PostprocessRequestDrawingInfo">
+	
+		select 
+			FN_GetDisplayDrawingNo(DRAWING.order_type, DRAWING.order_no_base, DRAWING.order_no_extra, DRAWING.drawing_no) as design_drawing_no
+			, DRAWING.postprocessing
+			, DRAWING.description
+			, DRAWING.dimension
+			, DRAWING.material
+			, DRAWING.thermal
+			, OUTSRC.quantity
+			, OUTSRC.spare
+			, OUTSRC.unit_price
+			, OUTSRC.drawing_url			
+		
+		from job_partner_outsourcing_order OUTSRC
+			inner join job_order JOB on JOB.id = OUTSRC.job_order_id
+			inner join job_design_drawing DRAWING on DRAWING.id = OUTSRC.job_design_drawing_id
+		where
+			OUTSRC.partner_id = #{partnerId} and OUTSRC.request_type = 'C' and OUTSRC.id = #{postprocessRequestId}
+	</select>
+	
+</mapper>

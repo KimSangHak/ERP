@@ -1,0 +1,326 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.BulletinBoardMapper">
+
+	<!-- 전광판용 -->
+
+	<select id="selectNoticeList" resultType="com.yuhannci.erp.model.db.NoticeMessage">
+	
+		select id, 
+				alarm_type, 
+				dept_code,
+				(select dept_name from dept_data where dept_data.id = dept_code) as dept_name,
+				message_type, 
+				message,
+				when_received,
+				(select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where job_order.id = job_order_id) as order_no,
+				(select device from job_order where job_order.id = job_order_id) as device
+		from notice_message		
+		order by id desc
+		limit #{N}
+		
+	</select>
+
+	<select id="selectNoticePageList" resultType="com.yuhannci.erp.model.NoticeMessageList">
+	
+		select id, 
+				alarm_type, 
+				dept_code,
+				(select dept_name from dept_data where dept_data.id = dept_code) as dept_name,
+				message_type, 
+				message,
+				when_received,
+				(select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where job_order.id = job_order_id) as order_no,
+				(select device from job_order where job_order.id = job_order_id) as device
+		from notice_message		
+		order by id desc
+		limit #{page}, #{psize}
+	</select>
+	
+	<select id="getNoticeToAndroid" resultType="com.yuhannci.erp.model.AndroidData">
+	
+		select (select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where job_order.id = job_order_id) as order_no,
+				id,
+				message,
+				when_created,
+				device,
+				customer
+		from notice_message
+		where alarm_type = 'G' and alarm_kind = 'A' and when_created > CURDATE() - interval 7 day
+		order by id asc
+	
+	</select>
+	
+	<select id="getNoticeToAndroid2" resultType="com.yuhannci.erp.model.AndroidData">
+	
+		select (select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where job_order.id = job_order_id) as order_no,
+				id,
+				message,
+				when_created,
+				device,
+				customer
+		from notice_message
+		where alarm_type = 'A' and alarm_kind = 'A'	and when_created > CURDATE() - interval 7 day	
+		order by id asc
+	
+	</select>
+	
+	<select id="getNoticeToAndroid3" resultType="com.yuhannci.erp.model.AndroidData">
+	
+		select (select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where job_order.id = job_order_id) as order_no,
+				id,
+				message,
+				when_created,
+				device,
+				sumprice
+		from notice_message
+		where alarm_type = 'B' and alarm_kind = 'PQ' and when_created > CURDATE() - interval 7 day		
+		order by id asc
+	
+	</select>
+	
+	<select id="getNoticeToAndroid3NULL" resultType="com.yuhannci.erp.model.AndroidData">
+	
+		select (select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where job_order.id = job_order_id) as order_no,
+				id,
+				message,
+				when_created,
+				device,
+				sumprice
+		from notice_message
+		where alarm_type = 'B' and dept_code = 'KK'		
+		order by id asc
+	
+	</select>
+	
+	<select id="getNoticeToAndroid3ToDirector" resultType="com.yuhannci.erp.model.AndroidData">
+	
+		select (select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where job_order.id = job_order_id) as order_no,
+				id,
+				message,
+				when_created,
+				device,
+				sumprice
+		from notice_message
+		where alarm_type = 'B' and alarm_kind = 'D'	and when_created > CURDATE() - interval 7 day	
+		order by id asc
+	
+	</select>
+	
+	<select id="getNoticeToAndroid3ToCEO" resultType="com.yuhannci.erp.model.AndroidData">
+	
+		select (select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where job_order.id = job_order_id) as order_no,
+				id,
+				message,
+				when_created,
+				device,
+				sumprice
+		from notice_message
+		where alarm_type = 'B' and alarm_kind = 'C' and when_created > CURDATE() - interval 7 day		
+		order by id asc
+	
+	</select>
+	
+	<select id="getNotice3ToManager" parameterType="String" resultType="com.yuhannci.erp.model.AndroidData">
+	
+		select (select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where job_order.id = job_order_id) as order_no,
+				id,
+				message,
+				when_created,
+				device,
+				sumprice
+		from notice_message
+		where alarm_type = 'B' and alarm_kind = 'M' and dept_code = #{deptCode} and when_created > CURDATE() - interval 7 day		
+		order by id asc
+	
+	</select>
+
+	<select id="selectTotalOrderListCount" resultType="Integer">
+		select count(*)
+		from job_order
+		where deleted = 'N' AND current_stage not in ('F', 'C')
+	</select>
+	
+	<select id="selectOrderList" resultType="com.yuhannci.erp.model.BulletinOrderEntry">
+		select id 
+			, FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as order_no
+			, device
+			, FN_GetCustomerName(src.customer_id) as customer_name
+			, shipping_date
+			, '' as status
+			, DATE_FORMAT(order_date, '%m.%d') as order_date
+			
+			, ifnull(DATE_FORMAT(design_date, '%m.%d'), '-') as install_date
+			
+			, ifnull(DATE_FORMAT(design_date, '%m.%d'), '-') as design_date
+			, if(design_progress > 0, concat(design_progress, '%'), '') as design_progress
+			
+			, ifnull(DATE_FORMAT(process_date, '%m.%d'), '-') as process_date
+			, if(process_progress > 0, concat(process_progress, '%'), '') as process_progress
+
+			, ifnull(DATE_FORMAT(purchase_date, '%m.%d'), '-') as purchase_date
+			, if(purchase_progress > 0, concat(purchase_progress, '%'), '') as purchase_progress
+			
+			, ifnull(DATE_FORMAT(assembly_date, '%m.%d'), '-') as assembly_date
+			, if(assembly_progress > 0, concat(assembly_progress, '%'), '') as assembly_progress
+			
+			, ifnull(DATE_FORMAT(program_date, '%m.%d'), '-') as program_date
+			, if(program_progress > 0, concat(program_progress, '%'), '') as program_progress
+		from job_order src
+		where deleted = 'N' and current_stage not in ('F', 'C') 
+		limit ${N} offset ${offset}
+					
+	</select>
+	<select id="selectTotalProgressListCount" resultType="Integer">
+		select count(*)
+		from job_order
+		where deleted = 'N' and current_stage not in ('F', 'C')
+		<if test="orderType != null and orderType != ''">
+			and order_type = #{orderType}
+		</if>
+	</select>
+	
+	<select id="selectTotalNoticeCount" resultType="Integer">
+		select count(*)
+		from notice_message
+		where when_created > DATE_FORMAT(Now(), '%Y-%m-%d 00:00:00')
+	</select>
+	
+	<select id="getPopupAlarmData" parameterType="String" resultType="com.yuhannci.erp.model.popData">
+		select description, body
+		from popData
+		where type = #{type};
+	</select>
+	
+	<select id="getAndroidToken" resultType="String">
+		select token
+		from android_token;
+	</select>
+	
+	<select id="getAndroidTokenCEO" resultType="String">
+		select token
+		from android_token
+		where isCEO = 'Y';
+	</select>
+	
+	<select id="getAndroidTokenFactory" resultType="String">
+		select token
+		from android_token
+		where isFactory = 'Y';
+	</select>
+	
+	<select id="getAndroidTokenDirector" resultType="String">
+		select token
+		from android_token
+		where isDelector = 'Y';
+	</select>
+	
+	<select id="getAndroidTokenPQ" resultType="String">
+		select token
+		from android_token
+		where isPQ = 'Y';
+	</select>
+	
+	<select id="getAndroidTokenManager" parameterType="String" resultType="String">
+		select token
+		from android_token
+		where isManager = 'Y' and dept = #{dept};
+	</select>
+
+	<select id="getOneAndroidToken" parameterType="String" resultType="int">
+		select count(if(token=#{token},token,null)) from android_token;
+	</select>
+	
+	<insert id="insertNewAndroidToken" parameterType="String">
+	
+		insert into android_token 
+		
+		(token,
+		userId,
+		dept,
+		isManager,
+		isFactory,
+		isDelector,
+		isCEO,
+		isPQ)
+		
+		values
+		(#{token},
+		#{userId},
+		#{dept},
+		#{isManager},
+		#{isFactory},
+		#{isDelector},
+		#{isCEO},
+		#{isPQ})
+	
+	</insert>
+	
+	<select id="getNoticeToAndroid4ToDirector" resultType="com.yuhannci.erp.model.AndroidData">
+	
+		select 
+				id,
+				message,
+				when_created,
+				kind,
+				useDate,
+				requestDate,
+				leaveOverworkId,
+				conformStage
+		from notice_message
+		where alarm_type = 'C' and alarm_kind = 'D' and when_created > CURDATE() - interval 7 day		
+		order by id asc
+	
+	</select>
+	
+	<select id="getNoticeToAndroid4ToCEO" resultType="com.yuhannci.erp.model.AndroidData">
+	
+		select 
+				id,
+				message,
+				when_created,
+				kind,
+				useDate,
+				requestDate,
+				leaveOverworkId,
+				conformStage
+		from notice_message
+		where alarm_type = 'C' and alarm_kind = 'C' and when_created > CURDATE() - interval 7 day		
+		order by id asc
+	
+	</select>
+	
+	<select id="getNoticeToAndroid4ToFactory" resultType="com.yuhannci.erp.model.AndroidData">
+	
+		select 
+				id,
+				message,
+				when_created,
+				kind,
+				useDate,
+				requestDate,
+				leaveOverworkId,
+				conformStage
+		from notice_message
+		where alarm_type = 'C' and alarm_kind = 'F' and when_created > CURDATE() - interval 7 day		
+		order by id asc
+	
+	</select>
+	
+	<select id="getNoticeToAndroid4ToManager" parameterType="String" resultType="com.yuhannci.erp.model.AndroidData">
+	
+		select 
+				id,
+				message,
+				when_created,
+				kind,
+				useDate,
+				requestDate,
+				leaveOverworkId,
+				conformStage
+		from notice_message
+		where alarm_type = 'C' and alarm_kind = 'M' and dept_code = #{deptCode} and when_created > CURDATE() - interval 7 day		
+		order by id asc
+	
+	</select>
+</mapper>

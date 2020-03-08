@@ -1,0 +1,258 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.MenuMapper">
+
+	<!-- 현재는 그냥 select 하고 있으나
+		아래 SubMenu 가 포함된 Top Menu 만 나오도록 수정해야함
+	 -->
+	 
+	 
+	<select id="selectTopLevelMenu" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+	
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.low_code = '00' and a.list_code='00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId};
+
+		<!-- 
+		select high_code 
+				,low_code
+				,title
+				, url
+			from menu_data
+			
+			where low_code = '00' and visible='Y';
+		 -->
+			
+			<!-- 
+			where low_code = '00' AND list_code='00';
+			
+				-->
+			
+	</select>
+	
+
+	<select id="selectSubMenu" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<![CDATA[
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.low_code <> '00' and a.list_code='00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId}
+			order by high_code, low_code;
+			]]>
+	
+	<!-- 
+	<![CDATA[
+		select high_code
+				, low_code
+				, title
+				, url 
+			from menu_data
+			
+			where low_code <> '00' and visible='Y'
+			order by high_code, low_code ;
+
+		
+
+	]]>
+	 -->
+		<!-- 
+				where low_code <> '00'  AND list_code='00'
+			order by high_code, low_code;
+		-->
+	</select>
+	
+	<select id="selectSubMenuPurchase" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<![CDATA[
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.high_code='25' and a.low_code <> '00' and a.list_code='00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId}
+			order by high_code, low_code;
+			]]>
+	
+	</select>
+	
+	<select id="selectListMenuPurchase" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<![CDATA[
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.high_code='25' and a.low_code <> '00' and a.list_code <> '00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId}
+			order by high_code, low_code, list_code;
+			]]>
+	
+	</select>
+	
+	<select id="selectSubMenuDailyReport" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<![CDATA[
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.high_code='10' and a.low_code <> '00' and a.list_code='00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId}
+			order by high_code, low_code;
+			]]>
+	
+	</select>
+	
+	<select id="selectListMenuDailyReort" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<![CDATA[
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.high_code='10' and a.low_code <> '00' and a.list_code <> '00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId}
+			order by high_code, low_code, list_code;
+			]]>
+	
+	</select>
+	
+	<select id="selectSubMenuDrawing" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<![CDATA[
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.high_code='20' and a.low_code <> '00' and a.list_code='00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId}
+			order by high_code, low_code;
+			]]>
+	
+	</select>
+	
+	<select id="selectListMenuDrawing" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<![CDATA[
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.high_code='20' and a.low_code <> '00' and a.list_code <> '00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId}
+			order by high_code, low_code, list_code;
+			]]>
+	
+	</select>
+	
+	<select id="selectSubMenuPS" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<![CDATA[
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.high_code='30' and a.low_code <> '00' and a.list_code='00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId}
+			order by high_code, low_code;
+			]]>
+	
+	</select>
+	
+	<select id="selectListMenuPS" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<![CDATA[
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.high_code='30' and a.low_code <> '00' and a.list_code <> '00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId}
+			order by high_code, low_code, list_code;
+			]]>
+	
+	</select>
+	
+	<select id="AdminYN" parameterType="HashMap" resultType="String">
+		select is_admin from user where id = #{id};
+	</select>
+	
+	<select id="selectSubMenuMCT" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<![CDATA[
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.high_code='40' and a.low_code <> '00' and a.list_code='00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId}
+			order by high_code, low_code;
+			]]>
+	
+	</select>
+	
+	<select id="selectListMenuMCT" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<![CDATA[
+		select a.high_code 
+				,a.low_code
+				,a.list_code
+				,a.title
+				,a.url
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code=b.low_code and a.list_code = b.list_code
+			where a.high_code='40' and a.low_code <> '00' and a.list_code <> '00' and a.visible='Y' and b.visible='Y' and b.user_id = #{userId}
+			order by high_code, low_code, list_code;
+			]]>
+	
+	</select>
+	
+	<select id="updateYN" parameterType="HashMap" resultType="String">
+		select updateYN from user_menu_mapping where high_code = #{highCode} and low_code = #{lowCode} 
+		and list_code = #{listCode} and user_id = #{userId};
+	</select>
+	
+	
+
+</mapper>

@@ -1,0 +1,67 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.DayOffMapper">
+
+	<select id="selectDayOff" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.DayOff">
+	
+		select id
+				, user_id
+				, (select name from user where user.id = dayoff.user_id) as user_name
+				, (select dept_name from dept_data where dept_data.id = (select dept_code from user where user.id = dayoff.user_id )) as dept_name
+				, day_off_type
+				, when_day_off
+				, (select position from user where user.id = dayoff.user_id) as position
+			from dayoff
+			<where>
+				<if test="userId != null">
+					user_id = #{userId}
+				</if>
+				<if test="searchInitialDate != null">
+					and when_day_off between #{searchInitialDate} and date_add(#{searchInitialDate}, interval 42 day)
+				</if>			
+				<if test="specificDate != null">
+					and when_day_off = convert(#{specificDate}, date)
+				</if>
+			</where> 							
+	</select>
+	
+	<select id="selectInstallSchedule" parameterType="HashMap" resultType="com.yuhannci.erp.model.CommonScheduleEntry">
+		
+		select FN_GetDisplayOrderNo( order_type, order_no_base, order_no_extra ) as label,
+				install_date as `when`
+			from job_order
+			<where>
+				<if test="searchInitialDate != null">
+					and install_date between #{searchInitialDate} and date_add(#{searchInitialDate}, interval 42 day)
+				</if>			
+				<if test="specificDate != null">
+					and install_date = convert(#{specificDate}, date)
+				</if>			
+			
+			</where>
+		
+	</select>
+
+	<insert id="insertDayOff" parameterType="com.yuhannci.erp.model.db.DayOff">
+		
+		insert into dayoff (user_id, day_off_type, when_day_off)
+						values (#{user_id}, #{day_off_type}, #{when_day_off} );
+	</insert>
+	
+	<select id="selectCalendarData" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.CalendarData">
+	
+		select `when`, label
+			from calendar_data 
+			<where>
+				<if test="searchInitialDate != null">
+					and `when` between #{searchInitialDate} and date_add(#{searchInitialDate}, interval 42 day)
+				</if>			
+				<if test="specificDate != null">
+					and `when` = convert(#{specificDate}, date)
+				</if>			
+			
+			</where>
+	
+	</select>
+</mapper>
+ 

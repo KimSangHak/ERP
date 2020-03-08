@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.DrawingInspectMapper">
+	<select id="selectDrawingInspectStatusListCount" parameterType="HashMap" resultType="Integer">
+		select 
+			count(*)
+		from
+			job_order ORD
+				inner join
+					job_design_drawing DW	on DW.order_id = ORD.id
+				left outer join
+					(select * from job_partner_outsourcing_order where request_type='P') as OUTSRC ON DW.id = OUTSRC.job_design_drawing_id
+				left outer join 
+					job_inspect as INSPECT			ON DW.id = INSPECT.job_drawing_id
+		
+		where
+			ORD.deleted = 'N' 
+			and ORD.current_stage &lt;&gt; 'F' 
+			and DW.current_stage not in('A','Z') 
+			and not (DW.current_stage = 'B' and DW.work_status = 'R' and DW.process_completed= 'N') 
+			
+			<if test="orderNoBase != null and orderNoBase != '' ">
+				and DW.order_no_base like concat(#{orderNoBase}, '%')
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''">
+				and DW.order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>		
+			<if test="drawingNo != null and drawingNo != ''">
+				and DW.drawing_no like concat(#{drawingNo}, '%')
+			</if>
+			<if test="outsourcingPartnerId != null">
+				and OUTSRC.partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and DW.registration_date between #{orderDateFrom} and #{orderDateTo}
+				</when>
+				<when test="orderDateFrom != null and orderDateTo == null">
+					and DW.registration_date >= #{orderDateFrom}
+				</when>
+				<when test="orderDateFrom == null and orderDateTo != null">
+					and DW.registration_date &lt; date_add(#{orderDateTo}, interval 1 day)
+				</when>				
+			</choose>
+	</select>
+	<select id="selectDrawingInspectStatusList" parameterType="HashMap" resultType="com.yuhannci.erp.model.DrawingInspect">
+		select DW.id
+		, FN_GetUserName(ORD.design_user_id) as design_user_name
+		
+		, DW.order_id
+		, FN_GetDisplayDrawingNo(DW.order_type, DW.order_no_base, DW.order_no_extra, DW.drawing_no) as drawing_number
+		, DW.order_no_base
+		, DW.order_no_extra
+		, DW.drawing_no
+		, DW.description
+		, DW.dimension
+		, DW.material
+		, DW.thermal
+		, DW.quantity
+		, DW.spare
+		, DW.postprocessing
+		, DW.checking
+		
+		, DW.current_stage
+		, DW.work_status
+		, DW.work_position
+		, DW.process_completed
+		, FN_GetDrawingCurrentStatus(DW.current_stage) as drawing_current_status
+		, DW.reg_date
+		, DW.finish_date
+		, DW.coating_date
+		, DW.inspect_date
+		, DW.finish_date
+		, DW.delivery_date as drawing_delivery_date
+		
+		, DW.outsourcing_partner_id
+		, FN_GetPartnerName(DW.outsourcing_partner_id) as partner_name
+		, FN_GetDisplayOutSourcingOrderNo(DW.outsourcing_partner_id, OUTSRC.request_type, OUTSRC.id) as out_order_no
+		, OUTSRC.delivery_date
+		, OUTSRC.with_postprocessing
+
+		, INSPECT.id
+		, INSPECT.requested_date
+		, INSPECT.result_ok as inspected_ok
+		, INSPECT.ok_quantity
+		, INSPECT.fail_quantity
+		, INSPECT.inspect_progress
+		, (select hash from registered_file where registered_file.id = INSPECT.file_id) as inspect_file_hash
+
+		from
+			job_order ORD
+				inner join
+					job_design_drawing DW	on DW.order_id = ORD.id
+				left outer join
+					(select * from job_partner_outsourcing_order where request_type='P') as OUTSRC ON DW.id = OUTSRC.job_design_drawing_id
+				left outer join 
+					job_inspect as INSPECT			ON DW.id = INSPECT.job_drawing_id
+		
+		where
+			ORD.deleted = 'N' 
+			and ORD.current_stage &lt;&gt; 'F' 
+			and DW.current_stage not in('A','Z') 
+			and not (DW.current_stage = 'B' and DW.work_status = 'R' and DW.process_completed= 'N') 
+			
+			<if test="orderNoBase != null and orderNoBase != '' ">
+				and DW.order_no_base like concat(#{orderNoBase}, '%')
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''">
+				and DW.order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>		
+			<if test="drawingNo != null and drawingNo != ''">
+				and DW.drawing_no like concat(#{drawingNo}, '%')
+			</if>
+			<if test="outsourcingPartnerId != null">
+				and OUTSRC.partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and DW.registration_date between #{orderDateFrom} and #{orderDateTo}
+				</when>
+				<when test="orderDateFrom != null and orderDateTo == null">
+					and DW.registration_date >= #{orderDateFrom}
+				</when>
+				<when test="orderDateFrom == null and orderDateTo != null">
+					and DW.registration_date &lt; date_add(#{orderDateTo}, interval 1 day)
+				</when>				
+			</choose>
+			
+		limit #{start}, #{length}
+					
+	</select>
+
+</mapper>

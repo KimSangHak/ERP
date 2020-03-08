@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.JobDeliveryMapper">
+
+	<insert id="insertDelivery" parameterType="com.yuhannci.erp.model.db.JobDelivery">
+	
+		insert into job_delivery
+			(job_order_id, order_no_base, order_no_extra,  
+				order_date,  
+				carrier_name, carrier_type, 
+				destination, shipping_fee
+				, image_file_no1
+				, image_file_no2
+				, image_file_no3
+				, image_file_no4
+				, image_file_no5)
+			values
+			(#{jobOrderId}, #{orderNoBase}, #{orderNoExtra}, 
+				now(),  
+				#{carrierName}, #{carrierType}, 
+				#{destination}, #{shippingFee}
+				, #{imageFileNo1}
+				, #{imageFileNo2}
+				, #{imageFileNo3}
+				, #{imageFileNo4}
+				, #{imageFileNo5}
+				);
+	
+	</insert>
+	
+	<select id="selectDelivery" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobDelivery">
+	
+		select id, job_order_id, 
+				order_no_base, order_no_extra, 
+				order_date, 
+				carrier_name, carrier_type, 
+				destination, 
+				shipping_fee,
+				image_file_no1, image_file_no2, image_file_no3, image_file_no4, image_file_no5,
+				(select hash from registered_file R where R.id = job_delivery.image_file_no1) as imageFileHashNo1,
+				(select hash from registered_file R where R.id = job_delivery.image_file_no2) as imageFileHashNo2,
+				(select hash from registered_file R where R.id = job_delivery.image_file_no3) as imageFileHashNo3,
+				(select hash from registered_file R where R.id = job_delivery.image_file_no4) as imageFileHashNo4,
+				(select hash from registered_file R where R.id = job_delivery.image_file_no5) as imageFileHashNo5
+				
+			from job_delivery
+			
+			<choose>
+				<when test="jobOrderIds != '' and jobOrderIds != null and jobOrderIds != ' '">
+					where
+					job_order_id in 
+					(
+					<foreach collection="jobOrderIds" item="id" separator=", ">
+						#{id}
+					</foreach>
+					)
+				</when>
+				<otherwise>
+				
+				</otherwise>
+				
+			</choose>
+			
+		
+	</select>
+
+</mapper>

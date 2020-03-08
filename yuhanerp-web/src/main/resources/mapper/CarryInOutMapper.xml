@@ -1,0 +1,480 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.CarryInOutMapper">
+	
+	<!-- 완품 가공 입고 목록 (사내가공 완료 또는 외주 가공중인 목록) -->
+	<select id="selectCarryInOutListCount" parameterType="HashMap" resultType="Integer">
+		select 
+			count(*)
+		from 
+			job_design_drawing DRAWING 
+				left outer join 
+			job_inspect INSPECT on INSPECT.id = DRAWING.inspect_id
+				left outer join
+			job_partner_outsourcing_order OUTSRC on (OUTSRC.request_type = 'P' and OUTSRC.id = DRAWING.outsourcing_request_id and OUTSRC.job_design_drawing_id = DRAWING.id and OUTSRC.partner_id = DRAWING.outsourcing_partner_id)  
+		where
+			DRAWING.current_stage = 'C'
+			 
+			<if test="orderNoBase != null">
+				and order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and order_no_extra = #{orderNoExtra}
+			</if>
+			<if test="outsourcingPartnerId != null">
+				and outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="insourcingProcess and !outsourcingProcess">
+					and (DRAWING.work_position = 'I' and DRAWING.work_status = 'F' and DRAWING.process_completed = 'Y' )
+				</when>
+				<when test="outsourcingProcess and !insourcingProcess">
+					and (DRAWING.work_position = 'O' and DRAWING.work_status = 'I' )
+				</when>
+				<otherwise>
+					and ((DRAWING.work_position = 'I' and DRAWING.work_status = 'F' and DRAWING.process_completed = 'Y') or (DRAWING.work_position = 'O' and DRAWING.work_status = 'I' ))
+				</otherwise>				
+			</choose>
+			<if test="orderDateFrom != null">
+			<![CDATA[
+				and OUTSRC.request_date > #{orderDateFrom}
+			]]>
+			</if>
+			<if test="orderDateTo != null">
+			<![CDATA[
+				and OUTSRC.request_date < date_add( #{orderDateTo}, interval 1 day)
+			]]>
+			</if> 
+			<if test="drawings != null">
+				and DRAWING.id in 
+				<foreach collection="drawings" separator="," open="(" close=")" item="draw">
+					#{draw}
+				</foreach>
+			</if>
+		</select>
+	
+	<select id="selectCarryInOutList" parameterType="HashMap" resultType="com.yuhannci.erp.model.CarryInEntry">
+	
+		select 
+			DRAWING.id
+			, FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as job_order_no
+			, FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) as design_drawing_no
+			, (case DRAWING.work_position when 'O' then FN_GetDisplayOutsourcingOrderNo(OUTSRC.partner_id, OUTSRC.request_type, OUTSRC.id) end) as outsourcing_order_no
+			, (select FN_GetUserName(design_user_id) from job_order where job_order.id = DRAWING.order_id) as design_user_name
+			, DRAWING.work_position as work_position
+			, DRAWING.description
+			, material
+			, thermal
+			, DRAWING.quantity
+			, DRAWING.spare
+			, postprocessing
+			
+			, FN_GetOutSourceName(DRAWING.work_position, OUTSRC.partner_id) as outsourcing_partner_name
+			, OUTSRC.uid as out_uid
+			, DATE_FORMAT(OUTSRC.request_date,'%Y-%m-%d %H:%i') as request_date
+			, OUTSRC.delivery_plan_date
+			, OUTSRC.delivery_date
+			, outsourcing_request_id
+			
+			, checking
+			, inspect_date
+			, (select result_ok from job_inspect where id=DRAWING.inspect_id)  as test_result
+		from 
+			job_design_drawing DRAWING 
+				left outer join
+			job_partner_outsourcing_order OUTSRC on (OUTSRC.request_type = 'P' and OUTSRC.is_receive='N' and OUTSRC.job_design_drawing_id = DRAWING.id)  
+		where
+			DRAWING.current_stage = 'C'
+			<if test="orderNoBase != null">
+				and order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and order_no_extra = #{orderNoExtra}
+			</if>
+			<if test="outsourcingPartnerId != null">
+				and outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="insourcingProcess == true and outsourcingProcess == false">
+					and (DRAWING.work_position = 'I' and DRAWING.work_status = 'F' and DRAWING.process_completed = 'Y' )
+				</when>
+				<when test="outsourcingProcess == true and insourcingProcess == false">
+					and (DRAWING.work_position in ('O','Z') and DRAWING.work_status = 'I' )
+				</when>
+				<otherwise>
+					and ((DRAWING.work_position = 'I' and DRAWING.work_status = 'F' and DRAWING.process_completed = 'Y' ) or (DRAWING.work_position = 'O' and DRAWING.work_status = 'I' ) or (DRAWING.work_position = 'Z' and DRAWING.work_status = 'I' ))
+				</otherwise>				
+			</choose>
+			<if test="orderDateFrom != null">
+			<![CDATA[
+				and OUTSRC.request_date > #{orderDateFrom}
+			]]>
+			</if>
+			<if test="orderDateTo != null">
+			<![CDATA[
+				and OUTSRC.request_date < date_add( #{orderDateTo}, interval 1 day)
+			]]>
+			</if> 
+			<if test="drawings != null">
+				and DRAWING.id in 
+				<foreach collection="drawings" separator="," open="(" close=")" item="draw">
+					#{draw}
+				</foreach>
+			</if>
+			
+		order by order_no_base, order_no_extra, drawing_no 
+		<if test="length != null and length != -1">
+			limit #{start}, #{length}
+		</if>
+	</select>
+
+	
+	<update id="updateProcessStatus">
+	
+		update job_design_drawing
+			set 
+				current_stage = #{currentStage}	
+				<if test="workStatus != null">
+					, work_status = #{workStatus}
+				</if>
+				<if test="coatingStage != null">
+					, coating_stage = #{coatingStage}
+				</if>
+				<if test="processCompleted != null">
+					, process_completed = #{processCompleted}
+				</if>
+				<if test="updateFinishDate">
+					, process_finish_date = #{now}
+				</if>
+			where
+				id = #{id}
+	
+	</update>
+	
+	<update id="updatePartnerOutsourcingOrderFinished">
+	
+		update job_partner_outsourcing_order 
+		set 
+			delivery_date = #{now},
+			is_receive = 'Y'
+		where
+			id = #{outsourcingRequestId} and job_design_drawing_id = #{designDrawingId} and request_type = 'P' and partner_id = #{outsourcingPartnerId}
+
+	</update>
+	
+	<update id="updatePartnerOutsourcingAddOrderFinished">
+	
+		update job_partner_outsourcing_order 
+		set 
+			delivery_date = #{now},
+			is_receive = 'Y'
+		where
+			uid = #{uid}
+	</update>
+	
+	
+	<update id="updateProcessWorkQuantity">
+		update job_partner_outsourcing_order as ot inner join job_design_drawing as od on ot.job_design_drawing_id=od.id
+		set od.work_quantity = (ot.quantity+ot.spare)
+		where od.id=#{id}
+	</update>
+	
+	<!-- 2. 후처리 완료 입고 목록 -->
+	<select id="selectPostprocessFinishedList" parameterType="HashMap" resultType="com.yuhannci.erp.model.PostprocessFinishedEntry">
+	
+		select 
+			DRAWING.id
+			, FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) as design_drawing_no
+			, (select FN_GetUserName(design_user_id) from job_order where job_order.id = DRAWING.order_id) as design_user_name
+			, DRAWING.description
+			, material
+			, thermal
+			, DRAWING.quantity
+			, DRAWING.spare
+			
+			, postprocessing
+			
+			, (select partner_name from job_partner where id = PPSRC.partner_id) as outsourcing_partner_name			
+			, DRAWING.process_finish_date as outsourcing_delivery_date
+			
+			, checking
+			, INSPECT.start_date as inspect_date
+			, INSPECT.result_ok as test_result
+			, (select hash from registered_file where id = INSPECT.result_file_id) as inspect_file_hash
+			, FN_GetDrawingCurrentStatus(DRAWING.current_stage) as current_stage
+		from 
+			job_design_drawing DRAWING 
+				left outer join 
+			job_inspect INSPECT on INSPECT.id = DRAWING.inspect_id
+				left outer join
+			job_partner_outsourcing_order PPSRC on (PPSRC.request_type = 'C' and PPSRC.uid = DRAWING.coating_request_id)  
+		where
+			DRAWING.current_stage = 'G'
+			and DRAWING.work_status = 'I'
+			<if test="orderNoBase != null">
+				and order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and order_no_extra = #{orderNoExtra}
+			</if>
+			<if test="outsourcingPartnerId != null">
+				and coating_partner_id = #{outsourcingPartnerId}
+			</if>
+			
+			<choose>
+				<when test="insourcingProcess and !outsourcingProcess">
+					and (DRAWING.work_position = 'I' )
+				</when>
+				<when test="outsourcingProcess and !insourcingProcess">
+					and (DRAWING.work_position = 'O'  )
+				</when>
+				<otherwise>
+					
+				</otherwise>				
+			</choose>
+			
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and PPSRC.request_date between #{orderDateFrom} and date_add(#{orderDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and PPSRC.request_date <![CDATA[ >= ]]> #{orderDateFrom}
+					
+				</when>
+				<when test="orderDateTo != null">
+					and PPSRC.request_date  <![CDATA[ < ]]> date_add( #{orderDateTo}, interval 1 day)
+				</when>
+			</choose> 				
+						
+		
+			
+		order by order_no_base, order_no_extra, drawing_no 
+		<if test="length != null and length != -1">
+			limit #{start}, #{length}
+		</if>
+	</select>	
+	<select id="selectPostprocessFinishedListCount" parameterType="HashMap" resultType="Integer">
+	
+		select 
+			count(*)
+		from 
+			job_design_drawing DRAWING 
+				left outer join 
+			job_inspect INSPECT on INSPECT.id = DRAWING.inspect_id
+				left outer join
+			job_partner_outsourcing_order PPSRC on (PPSRC.request_type = 'C' and PPSRC.uid = DRAWING.coating_request_id)  
+		where
+			DRAWING.current_stage = 'G'
+			and DRAWING.work_status = 'I'
+			<if test="orderNoBase != null">
+				and order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and order_no_extra = #{orderNoExtra}
+			</if>
+			<if test="outsourcingPartnerId != null">
+				and coating_partner_id = #{outsourcingPartnerId}
+			</if>
+			
+			<choose>
+				<when test="insourcingProcess and !outsourcingProcess">
+					and (DRAWING.work_position = 'I' )
+				</when>
+				<when test="outsourcingProcess and !insourcingProcess">
+					and (DRAWING.work_position = 'O'  )
+				</when>
+				<otherwise>
+					
+				</otherwise>				
+			</choose>
+						
+			<if test="orderDateFrom != null">
+			<![CDATA[
+				and PPSRC.request_date > #{orderDateFrom}
+			]]>
+			</if>
+			<if test="orderDateTo != null">
+			<![CDATA[
+				and PPSRC.request_date < date_add( #{orderDateTo}, interval 1 day)
+			]]>
+			</if> 
+	</select>		
+	
+	<!-- 후처리 완료 입고 처리 -->
+	<update id="updatePostprocessFinished">
+	
+		update job_design_drawing	set
+			coating_stage = 'Y',
+			coating_date = now(),
+			current_stage = 'B',
+			work_status = 'R'
+		where
+			id = #{id} 
+	
+	</update>
+	
+	<select id="generateGuid" resultType="String">
+	
+		select uuid()
+	
+	</select>
+	
+	<!-- 검사부로 인계 -->
+	<update id="carryToCheckDept">
+	
+		update job_design_drawing set
+			current_stage = 'D',
+			work_status = 'R',
+			inspect_id = #{inspectId}
+		where
+			id = #{id}
+	
+	</update>
+	
+	<!-- 조립부로 인계 -->
+	<update id="carryToAssemblyDept">
+	
+		update job_design_drawing set
+			current_stage = 'E',
+			work_status = 'R',
+			assembly_transfer_from = #{transferFrom},
+			assembly_transfer_to = #{transferTo},
+			assembly_transfer_date = #{transferDate}
+		where
+			id = #{id}
+	
+	</update>
+	
+
+	
+	<!-- 조립/검사 인계에 표시할 리스트 -->
+	<select id="selectAssembleCheckTargetList" parameterType="HashMap" resultType="com.yuhannci.erp.model.CarryToEntry" >
+	
+		select 
+			DRAWING.id
+			, FN_GetDisplayDrawingNo(DRAWING.order_type, DRAWING.order_no_base, DRAWING.order_no_extra, DRAWING.drawing_no) as design_drawing_no
+			, design_user_id
+			, FN_GetUserName(design_user_id) as design_user_name
+			, material
+			, thermal
+			, DRAWING.quantity
+			, DRAWING.spare
+			, postprocessing
+			, (select partner_name from job_partner where id = outsourcing_partner_id) as outsourcing_partner_name
+			, DRAWING.process_finish_plan_date as delivery_plan_date
+			, checking
+			, inspect_plan_date
+			, INSPECT.result_ok as test_result
+			, (select hash from registered_file where id = INSPECT.result_file_id) as inspect_file_hash
+			, FN_GetDrawingCurrentStatus(DRAWING.current_stage) as drawing_current_status
+		from job_design_drawing DRAWING
+			inner join job_order ORD on ORD.id = DRAWING.order_id
+			left outer join job_inspect INSPECT on DRAWING.inspect_id = INSPECT.id
+		where
+			ORD.deleted = 'N'
+			and ORD.moveYN = 'N'
+			and DRAWING.current_stage = 'B'
+			and DRAWING.work_status = 'R'
+			and DRAWING.process_completed = 'Y'
+			and DRAWING.passStay = 'N'
+			and DRAWING.coating_stage &lt;&gt; 'N'
+			<if test="workPositionFilter != null">
+			and DRAWING.work_position = #{workPositionFilter}
+			</if>
+			<if test="postprocessFinished">
+			and DRAWING.coating_stage in ( 'Y', 'S')
+			</if>
+			
+			<if test="checkNg">
+			and INSPECT.result_ok = 'NG'
+			</if>
+			<if test="outsourcingPartnerId != null">
+				and DRAWING.outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>			
+			<choose>
+			<when test='checkFinishStatus == "U"'>
+				and DRAWING.inspect_id is null
+			</when>
+			<when test='checkFinishStatus == "F"'>
+				and DRAWING.inspect_id is not null
+			</when>			
+			</choose>
+			<if test="orderNoBase != null and orderNoBase != '' ">
+				and DRAWING.order_no_base like concat(#{orderNoBase}, '%')
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''">
+				and DRAWING.order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>		
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and ORD.request_date between #{orderDateFrom} and date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and ORD.request_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and ORD.request_date <![CDATA[ < ]]> date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+			</choose> 			
+			
+		order by DRAWING.id desc
+		limit #{start}, #{length}
+	
+	</select>
+	
+	<!-- 조립/검사 인계에 표시할 리스트 count -->
+	<select id="selectAssembleCheckTargetListCount" parameterType="HashMap" resultType="Integer" >
+	
+		select count(*)
+		from job_design_drawing DRAWING
+			inner join job_order ORD on ORD.id = DRAWING.order_id
+			left outer join job_inspect INSPECT on DRAWING.inspect_id = INSPECT.id
+		where
+			ORD.deleted = 'N'
+			and ORD.moveYN = 'N'
+			and DRAWING.current_stage = 'B'
+			and DRAWING.work_status = 'R'
+			and DRAWING.passStay = 'N'
+			and DRAWING.process_completed = 'Y'
+			and DRAWING.coating_stage &lt;&gt; 'N'
+			<if test="workPositionFilter != null">
+			and DRAWING.work_position = #{workPositionFilter}
+			</if>
+			<if test="postprocessFinished">
+			and DRAWING.coating_stage in ( 'Y', 'S')
+			</if>
+			<if test="checkNg">
+			and INSPECT.result_ok = 'NG'
+			</if>
+			<if test="outsourcingPartnerId != null">
+				and DRAWING.outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>			
+			<choose>
+			<when test='checkFinishStatus == "U"'>
+				and (DRAWING.inspect_id is null and DRAWING.checking = 'Y')
+			</when>
+			<when test='checkFinishStatus == "F"'>
+				and ((DRAWING.inspect_id is not null and DRAWING.checking = 'Y') or DRAWING.checking = 'N')
+			</when>			
+			</choose>			
+			<if test="orderNoBase != null and orderNoBase != '' ">
+				and DRAWING.order_no_base like concat(#{orderNoBase}, '%')
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''">
+				and DRAWING.order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>		
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and ORD.request_date between #{orderDateFrom} and date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and ORD.request_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and ORD.request_date <![CDATA[ < ]]> date_add(#{orderDateDateTo}, interval 1 day)
+				</when>
+			</choose> 			
+			
+	</select>
+			
+</mapper>

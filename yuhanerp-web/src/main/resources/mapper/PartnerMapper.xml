@@ -1,0 +1,291 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.PartnerMapper">
+	
+	<select id="selectPartnerList" resultType="com.yuhannci.erp.model.db.JobPartner">
+	
+		select *
+		from job_partner
+		<where>
+			<if test="keyword != null">
+				partner_name like concat('%', #{keyword}, '%' )	or id = #{keyword}
+			</if>	
+			<if test="partnerId != null">
+				and id = #{partnerId}
+			</if>
+			<if test="partnerName != null">
+				and partner_name = #{partnerName}
+			</if>
+			<if test="typeCode != null">
+				and type_code = #{typeCode}
+			</if>
+			<if test="typeKind != null">
+				and type_kind = #{typeKind}
+			</if>			
+		</where>
+		order by partner_name
+	
+	</select>
+	
+	<select id="selectPartnerList2" resultType="com.yuhannci.erp.model.db.JobPartner">
+	
+		select *
+		from job_partner
+		where view_purchase = 'Y'
+			<if test='partnerName != null and partnerName != "" and partnerName != " "'>
+			and partner_name like concat('%', #{partnerName}, '%') 
+			</if>
+			<if test='Code != null and Code != "" and Code != " "'>
+				and id = #{Code}
+			</if>
+		
+		order by partner_name
+	
+	</select>
+	
+	<select id="selectOnePartnerList" resultType="com.yuhannci.erp.model.db.JobPartner">
+	
+		select *
+		from job_partner
+		where id= #{id};
+	
+	</select>
+
+	<select id="selectPartner" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPartner">
+	
+		select *
+		from job_partner
+		<where>
+			<choose>
+				<when test="partnerName != null">
+					partner_name = #{partnerName}
+				</when>
+				<when test="partnerId != null">
+					id = #{partnerId}
+				</when>
+			</choose>
+		</where>
+			
+	
+	</select>
+	
+	<insert id="insertPartner" parameterType="com.yuhannci.erp.model.db.JobPartner">
+		insert into job_partner (id, type_code, type_kind, 
+								 partner_name, billing_name, billing_after, 
+								 billing_day, bank_name, bank_account, 
+								 corporate_num, corporate_phone, corporate_mail, 
+								 corporate_addr, person_name, person_position, 
+								 person_mail, person_phone, view_processmanagement, 
+								 view_purchase, view_process, view_assemble, note )
+						values (#{id}, #{typeCode}, #{typeKind}, 
+							    #{partnerName}, #{billingName}, #{billingAfter}, 
+								#{billingDay}, #{bankName}, #{bankAccount},
+								#{corporateNum}, #{corporatePhone}, #{corporateMail},
+								#{corporateAddr}, #{personName}, #{personPosition},
+								#{personMail} , #{personPhone}, 'N',
+								'Y', 'N', 'N', #{note} 
+								);
+	</insert>
+	
+	<insert id="insertPartnerProcess" parameterType="com.yuhannci.erp.model.db.JobPartner">
+		insert into job_partner (id, type_code, type_kind, 
+								 partner_name, billing_name, billing_after, 
+								 billing_day, bank_name, bank_account, 
+								 corporate_num, corporate_phone, corporate_mail, 
+								 corporate_addr, person_name, person_position, 
+								 person_mail, person_phone, view_processmanagement, 
+								 view_purchase, view_process, view_assemble, processEnjoy )
+						values (#{id}, #{typeCode}, #{typeKind}, 
+							    #{partnerName}, #{billingName}, #{billingAfter}, 
+								#{billingDay}, #{bankName}, #{bankAccount},
+								#{corporateNum}, #{corporatePhone}, #{corporateMail},
+								#{corporateAddr}, #{personName}, #{personPosition},
+								#{personMail} , #{personPhone}, 'Y',
+								'N', 'Y', 'N' , #{processEnjoy}  
+								);
+	</insert>
+	
+	<update id="EditPartner" parameterType="com.yuhannci.erp.model.db.JobPartner">
+	
+		update job_partner 
+		set 
+			partner_name=#{partnerName}, 
+			<if test="billingName != null">
+			billing_name=#{billingName}, 
+			</if>
+			billing_after=#{billingAfter},
+			billing_day=#{billingDay},
+			<if test="bankName != null">
+			bank_name=#{bankName}, 
+			</if> 
+			<if test="bankAccount != null">
+			bank_account=#{bankAccount},
+			</if>
+			<if test="note != null">
+			note=#{note}, 
+			</if>
+			corporate_num=#{corporateNum}, 
+			corporate_phone=#{corporatePhone}, 
+			corporate_mail=#{corporateMail},
+			corporate_addr=#{corporateAddr}, 
+			person_name=#{personName}, 
+			person_position=#{personPosition},
+			person_mail=#{personMail},
+			<if test="processEnjoy != null">
+			processEnjoy=#{processEnjoy}, 
+			</if> 
+			person_phone=#{personPhone}
+			
+			
+		where id = #{id}
+		
+	</update>
+	
+	<select id="autoPartnerCount" parameterType="String" resultType="java.lang.Integer">
+		select count(*) from job_partner where id LIKE CONCAT(#{PartnerType},'%');
+	
+	</select>
+	
+	<select id="jobPartnerTypeCount" parameterType="com.yuhannci.erp.model.db.JobPartnerType" resultType="java.lang.Integer">
+		select count(*) from job_partner_type where type_code=#{typeCode} and type_kind=#{typeKind};
+	
+	</select>
+	
+	<select id="jobPartnerTypeNextValue" parameterType="com.yuhannci.erp.model.db.JobPartnerType" resultType="java.lang.Integer">
+		select next_value from job_partner_type where type_code=#{typeCode} and type_kind=#{typeKind};
+	
+	</select>
+	
+	<insert id="jobPartnerTypeCount_ins" parameterType="com.yuhannci.erp.model.db.JobPartnerType">
+		insert into job_partner_type (type_code, type_kind, type_name, next_value)
+		values (#{type_code}, #{type_kind}, #{type_name}, #{next_value} );
+	
+	</insert>
+	
+	<update id="jobPartnerTypeUP" parameterType="com.yuhannci.erp.model.db.JobPartnerType">
+		update job_partner_type
+		set next_value=#{nextValue}
+		where type_code=#{typeCode} and type_kind=#{typeKind};
+	</update>
+	
+	<select id="selectPartnerComboList" resultType="com.yuhannci.erp.model.KeyValueEntry">
+	
+		select id as `key`, partner_name as value
+			from job_partner
+			where processEnjoy = 'Y'
+	
+	</select>
+
+	<select id="selectPartnerSelectList" resultType="com.yuhannci.erp.model.KeyValueEntry">
+	
+		select id as `key`, partner_name as value
+			from job_partner
+		where
+		
+			processEnjoy = 'Y'
+			<if test='viewPurchase != null and viewPurchase != ""'>
+			and view_purchase = #{viewPurchase}
+			</if>
+			<if test='viewProcess != null and viewProcess != ""'>
+			and view_process = #{viewProcess}
+			</if>
+			<if test='viewAssemble != null and viewAssemble != ""'>
+			and view_assemble = #{viewAssemble}
+			</if>
+			<if test='viewFinancial != null and viewFinancial != ""'>
+			and view_financial = #{viewFinancial}
+			</if>
+			<if test='typeCode != null and typeCode != ""'>
+			and type_code = #{typeCode}
+			</if>
+			
+	
+	</select>
+
+	<select id="selectSimplePartnerList" resultType="com.yuhannci.erp.model.db.JobPartner">
+	
+		select P.*, T.type_name as partnerTypeName
+		from job_partner P 
+				inner join job_partner_type T on (P.type_code, P.type_kind) = (T.type_code, T.type_kind)
+		<choose>
+			<when test="sortOrder == 0">
+				order by P.partner_name
+			</when>
+			<when test="sortOrder == 1">
+				order by P.id
+			</when>
+			<when test="sortOrder == 2">
+				order by P.type_code, P.type_kind
+			</when>
+		</choose>
+		
+		limit #{start}, #{length}
+	</select>	
+	
+	<select id="selectSimplePartnerCount" resultType="Integer">
+	
+		select count(*)
+		from job_partner P 
+				inner join job_partner_type T on (P.type_code, P.type_kind) = (T.type_code, T.type_kind)
+	
+	</select>
+	
+	<select id="selectBillingAfter" resultType="String">
+	
+		select id 
+		from billing_after_data
+	
+	</select>
+	
+	<select id="selectBillingDay" resultType="String">
+	
+		select id 
+		from billing_day_data
+	
+	</select>
+	
+	<select id="selectJobPartnerType" resultType="com.yuhannci.erp.model.db.JobPartnerType">
+	
+		select *
+		from job_partner_type
+		order by type_name
+	
+	</select>
+	
+	<select id="selectLastPartnerId" resultType="String">
+	
+		select id 
+		from job_partner
+		where id like concat(#{partnerTypeId}, '%')
+		order by id desc
+		limit 1
+	
+	</select>
+	
+	<insert id="insertCustomer" parameterType="com.yuhannci.erp.model.db.Customer">
+	
+		insert into customer
+		(id, name, region)
+		values
+		(#{id}, #{name}, #{region});
+	
+	</insert>
+	
+	<select id="selectCustomer" resultType="com.yuhannci.erp.model.db.Customer" parameterType="String">
+	
+		select * 
+		from customer
+		where id = #{id}
+
+	
+	</select>
+	
+	<update id="updateCustomer" parameterType="com.yuhannci.erp.model.db.Customer">
+		update customer
+		set 
+		name = #{name},
+		region = #{region}
+		where id = #{id}
+	</update>
+</mapper>
+ 

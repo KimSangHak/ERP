@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.InspectMapper">
+
+	<insert id="registerOrder" parameterType="com.yuhannci.erp.model.db.JobInspect" keyColumn="id" keyProperty="id" useGeneratedKeys="true">
+	
+		insert into job_inspect
+			(job_drawing_id, 
+			get_date, get_from_id, get_to_id,
+			work_status
+			)
+		values
+			( 
+				#{jobDrawingId},
+				#{getDate}, #{getFromId}, #{getToId},
+				'R'			
+			)
+	
+	</insert>
+
+</mapper>

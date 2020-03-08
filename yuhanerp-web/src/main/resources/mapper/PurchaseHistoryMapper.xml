@@ -1,0 +1,24 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.PurchaseHistoryMapper">
+
+	<insert id="insertPurchaseHistory" parameterType="HashMap">
+	
+		insert into job_purchase_history
+			(job_purchase_id, request_id, request_type, model_no, maker)
+		select 
+			id, #{requestId}, #{requestType}, model_no, maker
+		from job_purchase
+		where
+			deleted = 'N' and
+			partner_id = #{partnerId}
+			and
+			job_order_id in
+			<foreach collection="jobOrderIdList" separator="," open="(" close=")" item="id">
+				#{id}
+			</foreach>
+					
+	</insert>
+	
+</mapper>
+ 

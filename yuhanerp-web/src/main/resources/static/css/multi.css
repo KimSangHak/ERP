@@ -1,0 +1,50 @@
+@charset "utf-8";
+/* CSS Document */
+
+.ms-choice,.ms-drop{border:1px solid #dedede}
+
+.ms-drop input[type=checkbox],.ms-parent{vertical-align:middle}
+
+.ms-parent{display:inline-block;position:relative}
+
+.ms-choice,.ms-choice>span{display:block;overflow:hidden;white-space:nowrap}
+
+.ms-choice{width:100%; height:35px;padding:0;cursor:pointer;text-align:left;line-height:35px;color:#444;text-decoration:none;background-color:#fff}
+
+.ms-choice.disabled {background-color:#f4f4f4;background-image:none;border:1px solid #ddd;cursor:default}
+
+.ms-choice>span{position:absolute;top:0;left:0;right:20px;text-overflow:ellipsis;padding-left:8px}
+
+.ms-choice>span.placeholder{color:#999}
+
+.ms-choice>div{position:absolute;top:0;right:0;width:35px;height:35px;background:url(../images/select.png) left top no-repeat; margin-right:5px;}
+
+.ms-choice>div.open{background:url(../images/select.png) right top no-repeat; margin-right:5px;}
+
+.ms-drop{width:100%;overflow:hidden;display:none;margin-top:-1px;padding:0;position:absolute;z-index:1000;background:#fff;color:#000;-webkit-border-radius:4px;-moz-border-radius:4px;border-radius:4px}
+
+.ms-drop.bottom{top:100%;-webkit-box-shadow:0 4px 5px rgba(0,0,0,.15);-moz-box-shadow:0 4px 5px rgba(0,0,0,.15);box-shadow:0 4px 5px rgba(0,0,0,.15)}
+
+.ms-drop.top{bottom:100%;-webkit-box-shadow:0 -4px 5px rgba(0,0,0,.15);-moz-box-shadow:0 -4px 5px rgba(0,0,0,.15);box-shadow:0 -4px 5px rgba(0,0,0,.15)}
+
+.ms-search,.ms-search input{-webkit-box-sizing:border-box; -khtml-box-sizing:border-box; -moz-box-sizing:border-box; -ms-box-sizing:border-box; box-sizing:border-box;}
+
+.ms-drop ul {overflow:auto;margin:0;padding:5px 8px}
+
+.ms-drop ul>li{list-style:none; display:list-item; background-image:none; position:static;  white-space:nowrap; display:block; margin:3px 0;}
+
+.ms-drop ul>li .disabled{opacity:.35;filter:Alpha(Opacity=35)}
+/*
+.ms-drop ul>li.multiple{display:block;float:left}
+
+.ms-drop ul>li.group{clear:both}
+
+.ms-drop ul>li.multiple label{width:100%;display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.ms-drop ul>li label{font-weight:400; display:block; white-space:nowrap}
+
+.ms-drop ul>li label.optgroup{font-weight:700}
+
+.ms-drop .ms-no-results{display:none}
+
+*/

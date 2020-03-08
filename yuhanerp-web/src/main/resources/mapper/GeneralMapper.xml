@@ -1,0 +1,301 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.GeneralMapper">
+
+	<select id="selectGeneralUsrEntry" parameterType="com.yuhannci.erp.model.GeneralSearchForm" resultType="com.yuhannci.erp.model.db.GeneralEntry">
+	
+	
+		select u.id, u.position, u.name, u.dept_code,
+		
+		u.join_date as joinDate,
+		
+		(select dept_name from dept_data where dept_data.id = u.dept_code) as deptName
+
+		from user u
+		
+		
+		
+		<where>
+			<choose>
+				<when test='isOut != "N"'>
+					u.is_out = 'Y'
+				</when>
+				<when test='isOut != "Y"'>
+					u.is_out = 'N'
+				</when>
+			</choose>
+		
+
+			<if test="DateBegin != null">
+				<![CDATA[
+				and u.join_date <= #{DateBegin}
+				]]>
+			</if>			
+		
+			<if test='usrName != null and usrName != "" and usrName != " "'>
+				and u.name like concat(#{usrName}, '%')
+			</if>
+			<if test='deptCode != null and deptCode != "" and deptCode != " " and deptCode !="A"'>
+				and u.dept_code = #{deptCode}
+			</if>
+			
+			
+			
+		</where>
+		
+			<if test="length != null and length != -1">
+				limit #{start}, #{length}
+			</if>
+	
+	</select>
+	
+	<select id="selectGeneralUsrEntryCount" parameterType="com.yuhannci.erp.model.GeneralSearchForm" resultType="Integer">
+	
+		
+		select count(*)
+		
+
+		from user u
+		
+		<where>
+			<choose>
+				<when test='isOut != "N"'>
+					u.is_out = 'Y'
+				</when>
+				<when test='isOut != "Y"'>
+					u.is_out = 'N'
+				</when>
+			</choose>
+		
+
+			<if test="DateBegin != null">
+				<![CDATA[
+				and u.join_date <= #{DateBegin}
+				]]>
+			</if>			
+		
+			<if test='usrName != null and usrName != "" and usrName != " "'>
+				and u.name like concat(#{usrName}, '%')
+			</if>
+			<if test='deptCode != null and deptCode != "" and deptCode != " " and deptCode !="A"'>
+				and u.dept_code = #{deptCode}
+			</if>
+			
+			
+		</where>
+		
+			<if test="length != null and length != -1">
+				limit #{start}, #{length}
+			</if>
+	
+	</select>
+	
+	<select id="selectGeneralVaEntry" parameterType="com.yuhannci.erp.model.GeneralVacationSearch" resultType="com.yuhannci.erp.model.db.GeneralVacationEntry">
+	
+	
+		select u.id, u.baseHourCount, u.hour_count, u.name as usrName, u.dept_code,
+			(select dept_name from dept_data where dept_data.id = u.dept_code) as deptName,
+			<![CDATA[
+			(select (((SUM(IFNULL(request_date,0))*8) + SUM(IFNULL(request_hour,0))) DIV 8) from leave_application where request_usr = u.id and request_strdate >= '2020-01-01') as useVacationD,
+			]]>
+			<![CDATA[
+			(select (((SUM(IFNULL(request_date,0))*8) + SUM(IFNULL(request_hour,0)))%8) from leave_application where request_usr = u.id and request_strdate >= '2020-01-01') as useVacationH,
+			]]>
+			<![CDATA[
+			(IFNULL(hour_count,0) DIV 8) as remindD,
+			]]>
+			<![CDATA[
+			(IFNULL(hour_count,0) % 8) as remindH
+			]]>
+		from user u
+
+		
+		<where>
+	
+			<if test='usrName != null and usrName != "" and usrName != " "'>
+				u.name like concat(#{usrName}, '%')
+			</if>
+			<if test='deptCode != null and deptCode != "" and deptCode != " " and deptCode !="A"'>
+				and u.dept_code = #{deptCode}
+			</if>
+			
+			
+			
+			
+		</where>
+		
+			<if test="length != null and length != -1">
+				limit #{start}, #{length}
+			</if>
+	
+	</select>
+	
+	<select id="selectGeneralVaEntryCount" parameterType="com.yuhannci.erp.model.GeneralVacationSearch" resultType="Integer">
+	
+		
+		select count(*)
+		
+
+		from user u
+		
+		<where>
+
+			<if test='usrName != null and usrName != "" and usrName != " "'>
+				u.name like concat(#{usrName}, '%')
+			</if>
+			<if test='deptCode != null and deptCode != "" and deptCode != " " and deptCode !="A"'>
+				and u.dept_code = #{deptCode}
+			</if>
+			
+			
+			
+		</where>
+		
+			<if test="length != null and length != -1">
+				limit #{start}, #{length}
+			</if>
+	
+	</select>
+	
+	<select id="getGeneralDeptData" resultType="com.yuhannci.erp.model.db.DeptData">
+		select * from dept_data
+
+	</select>
+	
+	<select id="selectGeneralWorkEntry" parameterType="com.yuhannci.erp.model.GeneralWorkSearch" resultType="com.yuhannci.erp.model.db.GeneralWorkEntry">
+	
+	
+		select w.id, w.dept_code, w.usr_id, w.registration_date, w.startkind, w.endkind,
+			
+			 
+			<![CDATA[
+			TIME_FORMAT( w.commmute_start, "%H:%i") as commmuteStart,
+			]]>
+			<![CDATA[
+			TIME_FORMAT(  w.commmute_end, "%H:%i") as commmuteEnd,
+			]]>
+			
+			(select dept_name from dept_data where dept_data.id = w.dept_code) as deptName,
+			(select name from user where id = w.usr_id) as usrName,
+			'N' as yn
+	
+
+		from work_manager w
+	
+		<where>
+			<choose>
+				<when test="DateBegin != null">
+					w.registration_date = #{DateBegin}
+				</when>
+				<when test="DateBegin == null">
+					w.registration_date = CURDATE()
+				</when>
+			</choose>
+
+			<if test='usrName != null and usrName != "" and usrName != " "'>
+				and (select name from user id = w.usr_id) like concat(#{usrName}, '%')
+			</if>
+			<if test='deptCode != null and deptCode != "" and deptCode != " " and deptCode !="A"'>
+				and w.dept_code = #{deptCode}
+			</if>
+			
+			
+			
+			
+			
+		</where>
+		
+			<if test="length != null and length != -1">
+				limit #{start}, #{length}
+			</if>
+	
+	</select>
+	
+	<select id="generalWorkEntryY" parameterType="com.yuhannci.erp.model.GeneralWorkSearch" resultType="com.yuhannci.erp.model.db.GeneralWorkEntry">
+	
+	
+		select w.id, w.dept_code, w.usr_id, w.registration_date, w.startkind, w.endkind,
+			
+			 
+			<![CDATA[
+			TIME_FORMAT( w.commmute_start, "%H:%i") as commmuteStart,
+			]]>
+			<![CDATA[
+			TIME_FORMAT(  w.commmute_end, "%H:%i") as commmuteEnd,
+			]]>
+			
+			
+			(select dept_name from dept_data where dept_data.id = w.dept_code) as deptName,
+			(select name from user where id = w.usr_id) as usrName,
+			'Y' as yn
+	
+
+		from work_manager w
+	
+		<where>
+			<choose>
+				<when test="DateBegin != null">
+					w.registration_date = #{DateBegin}
+				</when>
+				<when test="DateBegin == null">
+					w.registration_date = CURDATE()
+				</when>
+			</choose>
+
+			<if test='usrName != null and usrName != "" and usrName != " "'>
+				and (select name from user id = w.usr_id) like concat(#{usrName}, '%')
+			</if>
+			<if test='deptCode != null and deptCode != "" and deptCode != " " and deptCode !="A"'>
+				and w.dept_code = #{deptCode}
+			</if>
+			
+			
+			
+			
+			
+		</where>
+		
+			<if test="length != null and length != -1">
+				limit #{start}, #{length}
+			</if>
+	
+	</select>
+	
+	<select id="selectGeneralWorkEntryCount" parameterType="com.yuhannci.erp.model.GeneralWorkSearch" resultType="Integer">
+	
+		
+		select count(*)
+		
+
+		from work_manager w
+		
+		<where>
+			<choose>
+				<when test="DateBegin != null">
+					w.registration_date = #{DateBegin}
+				</when>
+				<when test="DateBegin == null">
+					w.registration_date = CURDATE()
+				</when>
+			</choose>
+
+			<if test='usrName != null and usrName != "" and usrName != " "'>
+				and (select name from user id = w.usr_id) like concat(#{usrName}, '%')
+			</if>
+			<if test='deptCode != null and deptCode != "" and deptCode != " " and deptCode !="A"'>
+				and w.dept_code = #{deptCode}
+			</if>
+			
+		</where>
+		
+			<if test="length != null and length != -1">
+				limit #{start}, #{length}
+			</if>
+	
+	</select>
+	
+
+	
+	
+
+</mapper>

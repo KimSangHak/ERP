@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.ProcessOutsourceListDataMapper">
+
+	<!-- 가공 발주 리스트 -->
+	<!-- 발주 기록이 있는 대상만 찾을거라서 job_partner_outsourcing_order 를 inner join -->
+	<select id="selectProcessOutsourceListData" parameterType="HashMap" resultType="com.yuhannci.erp.model.ProcessOrderListEntry">
+		select draw.id
+		
+		, FN_GetCustomerNameOfDesignDrawing(draw.id) as customer_name
+		, ord.device
+		, (select name from user where user.id = ord.design_user_id) as design_user_name
+		
+		, outOrd.partner_id as outsourcing_partner_id
+		, FN_GetPartnerName(outOrd.partner_id) as outsourcing_partner_name
+		, FN_GetDisplayOutSourcingOrderNo(outOrd.id, outOrd.request_type, outOrd.partner_id) as outsourcing_request_no		
+		, outOrd.request_date as outsourcing_request_date
+		, FN_GetDisplayDrawingNo(draw.order_type, draw.order_no_base, draw.order_no_extra, draw.drawing_no) as design_drawing_no
+
+		, draw.description
+		, draw.dimension
+		, draw.material
+		, draw.thermal
+		, draw.quantity
+		, draw.spare
+		, draw.postprocessing
+		, outOrd.delivery_plan_date as delivery_plan_date
+
+		, outOrd.unit_price
+
+		, draw.note
+		
+		, FN_GetDrawingCurrentStatus(draw.current_stage) as drawing_current_status
+		
+		, outOrd.uid
+		
+				
+		from job_design_drawing draw   
+			inner join job_partner_outsourcing_order outOrd 
+				on (outOrd.job_design_drawing_id = draw.id and outOrd.partner_id = draw.outsourcing_partner_id and outOrd.request_type = 'P' and outOrd.id = draw.outsourcing_request_id)		
+			inner join job_order ord on draw.order_id = ord.id
+		<where>
+			draw.current_stage = 'C'
+			and draw.work_position in('O','Z') 
+			and draw.process_completed='N'
+			and draw.outsourcing_request_id is not null
+			
+			<if test="designDrawingIdArray != null">
+				and draw.id in
+				<foreach collection="designDrawingIdArray" open="(" close=")" separator="," item="id">
+					#{id}
+				</foreach>
+			</if>
+			
+			<if test="orderNoBase != null and orderNoBase != '' ">
+				and draw.order_no_base like concat(#{orderNoBase}, '%')
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''">
+				and draw.order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="drawingNo != null and drawingNo != ''">
+				and draw.drawing_no like concat(#{drawingNo}, '%')
+			</if>
+
+			<if test="outsourcingPartnerId != null ">
+				and outOrd.partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and outOrd.request_date between #{orderDateFrom} and #{orderDateTo}
+				</when>
+				<when test="orderDateFrom != null and orderDateTo == null">
+					and outOrd.request_date >= #{orderDateFrom}
+				</when>
+				<when test="orderDateFrom == null and orderDateTo != null">
+					and outOrd.request_date &lt; date_add(#{orderDateTo}, interval 1 day)
+				</when>				
+			</choose>
+		</where>
+		order by outOrd.partner_id, outOrd.id
+		
+		<if test="length != null and length != -1">
+			limit #{start}, #{length}
+		</if>		
+	</select>
+	
+	<select id="selectProcessOutsourceSingleData" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPartnerOutsourcingOrder">
+		select id
+		, job_design_drawing_id
+		, job_order_id
+		, request_type
+		, partner_id
+		, request_date
+		, delivery_date
+		, delivery_plan_date
+		, drawing_url
+		, unit_price
+		, quantity
+		, spare
+		, with_postprocessing
+		, is_receive
+		, uid
+		, statement_of_account_detail_id
+				
+		from job_partner_outsourcing_order
+		where uid = #{uid}
+	</select>
+	
+	<select id="selectProcessOutsourceListDataCount" parameterType="HashMap" resultType="Integer">
+		select count(*)
+		from job_design_drawing draw   
+			inner join job_partner_outsourcing_order outOrd 
+				on (outOrd.job_design_drawing_id = draw.id and outOrd.partner_id = draw.outsourcing_partner_id and outOrd.request_type = 'P' and outOrd.id = draw.outsourcing_request_id)		
+			inner join job_order ord on draw.order_id = ord.id
+		<where>
+			draw.current_stage = 'C'
+			and draw.work_position='O' 
+			and draw.process_completed='N'
+			and draw.outsourcing_request_id is not null
+			
+			<if test="orderNoBase != null and orderNoBase != '' ">
+				and draw.order_no_base like concat(#{orderNoBase}, '%')
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''">
+				and draw.order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="drawingNo != null and drawingNo != ''">
+				and draw.drawing_no like concat(#{drawingNo}, '%')
+			</if>
+
+			<if test="outsourcingPartnerId != null ">
+				and outOrd.partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and outOrd.request_date between #{orderDateFrom} and #{orderDateTo}
+				</when>
+				<when test="orderDateFrom != null and orderDateTo == null">
+					and outOrd.request_date >= #{orderDateFrom}
+				</when>
+				<when test="orderDateFrom == null and orderDateTo != null">
+					and outOrd.request_date &lt; date_add(#{orderDateTo}, interval 1 day)
+				</when>				
+			</choose>
+		</where>	
+	</select>
+
+	<select id="selectPartnerOutsourcingRequestList" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPartnerOutsourcingOrder">
+	
+		select *
+		from job_partner_outsourcing_order
+		where
+			request_type = #{requestType}
+			
+			<if test="id != null">
+				and id = #{id}
+			</if>
+			
+			<if test="jobDesignDrawingId != null">
+				and job_design_drawing_id = #{jobDesignDrawingId}			
+			</if>
+		
+	</select>
+	
+	<update id="updateOutsourcingOrderMaster">
+	
+		update job_partner_outsourcing_order
+		set
+			unit_price = #{unitPrice},
+			delivery_plan_date = #{deliveryPlanDate}
+		where
+			uid = #{uid}
+	
+	</update>
+	<update id="updateOutsourcingOrder">
+	
+		update job_design_drawing
+		set
+			process_finish_plan_date = #{deliveryPlanDate}
+		where
+			id = (select id from job_partner_outsourcing_order where uid = #{uid} )
+	
+	</update>
+</mapper>

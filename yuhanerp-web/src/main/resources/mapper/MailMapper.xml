@@ -1,0 +1,85 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.MailMapper">
+	
+	<update id="resetSendingStatus">
+	
+		update mailing
+			set send_status = 'R'
+			where send_status = 'Q'
+	
+	</update>
+	<select id="selectUnsentMail" parameterType="HashMap" resultType="com.yuhannci.erp.model.EmailTransferEntry">
+	<![CDATA[
+		select 	id, 
+				subject, 
+				body,
+				from_user_id,
+				(select concat(name, '<', email, '>') from `user` where `user`.id = mailing.from_user_id) as sender_email,
+				registered_date,
+				sent_date,
+				hint
+		from mailing
+		where send_status = 'R' 		
+		limit 2
+		for update
+		]]>
+	</select>
+	
+	<update id="markSending" parameterType="HashMap">
+	
+		update mailing
+			set send_status = 'Q'
+			where id in
+			<foreach item="mailId" collection="mailingId" open="(" close=")" separator=",">
+				#{mailId}
+			</foreach>
+	
+	</update>
+	
+	<select id="selectMailingRecipients" parameterType="HashMap" resultType="String">
+	<![CDATA[
+		select if(src.recipient is not null, (select concat(name, '<', email, '>') from `user` where `user`.id = src.recipient), src.external_recipient)
+		from mailing_recipients src
+		where mailing_id = #{mailingId}
+	]]>
+	</select>
+	
+	<update id="updateMailSendStatus" parameterType="HashMap">
+	
+		update mailing 		set
+			sent_date = now(),
+			send_status = #{send_status}
+			where id = #{id}
+	
+	</update>
+
+	<insert id="addNewMail" parameterType="com.yuhannci.erp.model.db.Mailing" keyColumn="id" keyProperty="id" useGeneratedKeys="true">
+	
+		insert into mailing (subject, body, from_user_id, registered_date)
+				values(#{subject}, #{body}, #{fromUserId}, now());
+	
+	</insert>
+	
+	<insert id="addMailRecipients" parameterType="HashMap" >
+	
+		insert into mailing_recipients (mailing_id, recipient)
+							values
+							<foreach item="recipient" collection="recipients" open="" close="" separator=", ">
+								( #{mailId}, #{recipient} )
+							</foreach>							
+							;
+	
+	</insert>
+	<insert id="addMailExternalRecipients" parameterType="HashMap" >
+	
+		insert into mailing_recipients (mailing_id, external_recipient)
+							values
+							<foreach item="recipient" collection="recipients" open="" close="" separator=", ">
+								( #{mailId}, #{recipient} )
+							</foreach>							
+							;
+	
+	</insert>
+</mapper>
+ 

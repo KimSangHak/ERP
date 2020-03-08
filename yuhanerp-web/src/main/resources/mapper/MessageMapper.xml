@@ -1,0 +1,31 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.MessageMapper">
+
+	<select id="selectRecentMessages" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Message">
+	
+		select id 
+				, sender_user_id, receiver_user_id
+				, title, body
+				, when_Received
+				, when_Read
+				, when_Deleted 
+			from message
+			where receiver_user_id = #{userId} and when_deleted is null
+			order by when_Received desc
+		<if test="N > 0">
+			limit ${N}
+		</if>
+				
+	</select>
+
+	<select id="selectUnreadMessageCount" parameterType="HashMap" resultType="Integer">
+	
+		select count(*)
+			from message
+			where receiver_user_id = #{userId} and when_deleted is null and when_Read is null;
+	
+	</select>	
+
+</mapper>
+ 

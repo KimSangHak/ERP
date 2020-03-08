@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ehcache xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:noNamespaceSchemaLocation="http://ehcache.org/ehcache.xsd"
+    updateCheck="false">
+    <diskStore path="java.io.tmpdir" />
+
+    <cache name="발주업체리스트"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           timeToIdleSeconds="300" timeToLiveSeconds="600"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off">
+        <persistence strategy="localTempSwap" />
+    </cache>
+    <cache name="업체명"
+           maxEntriesLocalHeap="10000"
+           eternal="false"
+           timeToIdleSeconds="300" timeToLiveSeconds="600"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off">
+        <persistence strategy="localTempSwap" />
+    </cache>
+    <cache name="후처리업체콤보"
+           maxEntriesLocalHeap="100"
+           eternal="false"
+           timeToIdleSeconds="300" timeToLiveSeconds="600"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off">
+        <persistence strategy="localTempSwap" />
+    </cache>
+        <cache name="billingAfter"
+           maxEntriesLocalHeap="100"
+           eternal="false"
+           timeToIdleSeconds="300" timeToLiveSeconds="600"
+           memoryStoreEvictionPolicy="LFU"
+           transactionalMode="off">
+        <persistence strategy="localTempSwap" />
+    </cache>
+       <cache name="billingDay"
+          maxEntriesLocalHeap="100"
+          eternal="false"
+          timeToIdleSeconds="300" timeToLiveSeconds="600"
+          memoryStoreEvictionPolicy="LFU"
+          transactionalMode="off">
+       <persistence strategy="localTempSwap" />
+    </cache>
+           <cache name="partnerTypes"
+          maxEntriesLocalHeap="100"
+          eternal="false"
+          timeToIdleSeconds="300" timeToLiveSeconds="600"
+          memoryStoreEvictionPolicy="LFU"
+          transactionalMode="off">
+       <persistence strategy="localTempSwap" />
+    </cache>
+</ehcache>

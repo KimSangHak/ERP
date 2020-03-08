@@ -1,0 +1,669 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.JobOrderMapper">
+
+	<sql id="selectFields">
+		select id
+			, order_date 
+			, order_type
+			, (case order_type when 'JIG' then '치공구' else '설비' end) as order_type_name
+			
+			, customer_id
+			, FN_GetCustomerName(src.customer_id) as customer_name
+			
+			, current_stage
+			
+			, FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as order_no
+			, order_no_base
+			, order_no_extra
+						 
+			, device
+			, business_user_id
+			, (select name from user where user.id = business_user_id) as business_user_name
+			, design_user_id
+			, (select name from user where user.id = design_user_id) as design_user_name
+			, customer_user
+			, note
+			, estimated_days
+			, quantity
+			, internal_unit_price
+			, estimated_price
+			, negotiated_price
+			, shipping_date
+			, delivery_date
+			, test_date
+			, install_date
+			, real_install_date
+			
+			,design_progress
+			,design_date
+			,assembly_progress
+			,assembly_date
+			,program_progress
+			,program_date
+			,process_progress
+			,process_date
+			,purchase_progress
+			,purchase_date
+			,design_status
+
+			, last_modified_user_id
+			, last_modified_when
+			
+			, (select count(*) from job_design_drawing where src.id = job_design_drawing.order_id) as DrawingCount
+	</sql>
+
+	<select id="selectSingleOrder" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobOrder">
+		
+		<include refid="selectFields"></include>
+		
+		, moveYN
+	
+		from job_order src
+		where 
+				deleted = 'N'
+				<if test="orderNoBase != null">
+					and order_no_base = #{orderNoBase}
+				</if>
+				<if test="orderNoExtra != null">
+					and order_no_extra like concat(#{orderNoExtra}, '%')
+				</if>
+				<if test="id != null">
+				and id = #{id}
+				</if> 
+		limit 1
+	</select>
+	
+	<select id="selectCalendarData" parameterType="HashMap" resultType="com.yuhannci.erp.model.CalendarDayJob">
+		<!-- 
+		select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as orderNo, '납품' as label, 'green' as color, install_date as scheduleDate
+		from job_order src
+		where
+			deleted = 'N' and install_date between #{searchInitialDate} and date_add(#{searchInitialDate}, interval 7 week)
+		
+		union all
+	 	-->
+		select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as orderNo, '설계완료' as label, 'red' as color, design_date as scheduleDate
+		from job_order src
+		where
+			deleted = 'N' and design_date between #{searchInitialDate} and date_add(#{searchInitialDate}, interval 7 week)
+
+		union all 
+	
+		select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as orderNo, '가공' as label, 'red' as color, process_date as scheduleDate
+		from job_order src
+		where
+			deleted = 'N' and process_date between #{searchInitialDate} and date_add(#{searchInitialDate}, interval 7 week)
+
+		union all
+	
+		select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as orderNo, '조립' as label, 'red' as color, assembly_date as scheduleDate
+		from job_order src
+		where
+			deleted = 'N' and assembly_date between #{searchInitialDate} and date_add(#{searchInitialDate}, interval 7 week)
+
+		union all
+	
+		select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as orderNo, 'PGM' as label, 'red' as color, program_date as scheduleDate
+		from job_order src
+		where
+			deleted = 'N' and program_date between #{searchInitialDate} and date_add(#{searchInitialDate}, interval 7 week)
+
+	</select>
+
+	<!-- 등록된 order-no 가 맞는지 확인할 때 사용 -->	
+	<select id="selectJobOrderExists" parameterType="HashMap" resultType="Long">
+		select 1
+			from job_order
+			where order_no_base = #{orderNoBase} 
+					and order_no_extra = #{orderNoExtra}
+					and order_type = #{orderType}
+	</select>
+
+	<select id="selectIngOrderList" resultType="com.yuhannci.erp.model.KeyValueEntry">
+	
+		select concat(id) as `key`, FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as `value`
+			from job_order
+			where deleted = 'N' and current_stage not in ('F', 'C')
+		order by order_date
+	</select>
+	
+	<select id="selectIngOrderListFirst" resultType="Long">
+		select id
+			from job_order
+			where deleted = 'N' and current_stage not in ('F', 'C')
+		order by order_date limit 1
+	</select>
+
+	<select id="selectJobOrder" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobOrder">
+
+			
+		<include refid="selectFields"></include>
+		from job_order src
+		where 
+				deleted = 'N' and order_no_base != 'ZZZZZ'
+				<if test="orderType != null">
+				and order_type = #{orderType}  
+				</if>
+				<choose>
+					<when test='finishStatus == "Y"'>
+						and current_stage = 'F'
+					</when>
+					<when test='finishStatus == "N"'>
+						and current_stage != 'F' 
+					</when>
+				</choose>
+				<if test="keyword != null and keyword != ''">
+					and device like concat('%', #{keyword}, '%')
+				</if>
+				<if test="orderNoBase != null and orderNoBase != '' ">
+					and order_no_base like concat(#{orderNoBase}, '%')
+				</if>
+				<if test="orderNoExtra != null and orderNoExtra != ''">
+					and order_no_extra like concat(#{orderNoExtra}, '%')
+				</if>
+				<choose>
+					<when test="orderDateFrom != null and orderDateTo != null">
+						and order_date between #{orderDateFrom} and date_add(#{orderDateTo}, interval 1 day)
+					</when>
+					<when test="orderDateFrom != null and orderDateTo == null">
+					<![CDATA[
+						and order_date > #{orderDateFrom}
+						]]> 
+					</when>
+					<when test="orderDateFrom == null and orderDateTo != null">
+						and order_Date &lt; date_add(#{orderDateTo}, interval 1 day)
+					</when>				
+				</choose>
+				<choose>
+					<when test="deliveryDateFrom != null and deliveryDateTo != null">
+						and delivery_date between #{deliveryDateFrom} and date_add(#{deliveryDateTo}, interval 1 day)
+					</when>
+					<when test="deliveryDateFrom != null and deliveryDateTo == null">
+					<![CDATA[
+						and delivery_date &gt; #{deliveryDateFrom}
+						]]> 
+					</when>
+					<when test="deliveryDateFrom == null and deliveryDateTo != null">
+						and delivery_date &lt; date_add(#{deliveryDateTo}, interval 1 day)
+					</when>							
+				</choose>		
+				<choose>
+					<when test="designDateFrom != null and designDateTo != null">
+						and designDate between #{designDateFrom} and date_add(#{designDateTo}, interval 1 day)
+					</when>
+					<when test="designDateFrom != null and designDateTo == null">
+					<![CDATA[
+						and designDate &gt; #{designDateFrom}
+						]]> 
+					</when>
+					<when test="designDateFrom == null and designDateTo != null">
+						and designDate &lt; date_add(#{designDateTo}, interval 1 day)
+					</when>							
+				</choose>	
+				
+				order by order_date DESC
+	</select>
+
+	<select id="selectJobOrderProgress" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobOrderProgress">
+		select id
+			, order_type
+			, DATE_FORMAT(order_date,'%Y-%m-%d') as order_date
+			, customer_id
+			, FN_GetCustomerName(customer_id) as customer_name
+			, FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as order_full_no
+			, current_stage
+			, device
+			, customer_user
+			, business_user_id
+			, FN_GetUserName(business_user_id) as business_user_name
+			, design_user_id
+			,  FN_GetUserName(design_user_id) as design_user_name
+			, assembly_id
+			,  FN_GetUserName(assembly_id) as assembly_name
+			, pgm_id
+			,  FN_GetUserName(pgm_id) as pgm_name
+			, wiring_id
+			,  FN_GetUserName(wiring_id) as wiring_name
+			, note
+			, quantity
+			, internal_unit_price
+			, estimated_price
+			, negotiated_price
+			, shipping_date
+			, delivery_date
+			, install_date
+			, real_install_date
+			
+			,design_progress
+			,design_status
+			,design_date
+			,design_start
+			,design_end
+			,assembly_progress
+			,assembly_status
+			,assembly_date
+			,assembly_start
+			,assembly_end
+			,program_progress
+			,program_status
+			,program_date
+			,program_start
+			,program_end
+			,wiring_status
+			,wiring_date
+			,wiring_start
+			,wiring_end
+			,process_progress
+			,process_date
+			,purchase_progress
+			,purchase_date
+	
+			, setup_id
+
+			, (select count(*) from job_design_drawing where src.id = job_design_drawing.order_id) as drawing_count
+			, (select count(*) from job_design_drawing where src.id = job_design_drawing.order_id AND job_design_drawing.process_completed) as drawing_complete				
+			, (select count(*) from job_purchase where src.id = job_purchase.job_order_id) as purchase_count
+			, (select count(*) from job_purchase where src.id = job_purchase.job_order_id AND job_purchase.stage IN ('F' ,'O')) as purchase_in_count				
+	
+		from job_order src
+		where 
+				src.deleted = 'N' and src.order_no_base != 'ZZZZZ'
+				and src.current_stage not in ('F', 'C')
+				<if test="orderType != null and orderType != ''">
+					and src.order_type = #{orderType}
+				</if>
+				<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+					and src.order_no_base like concat(#{orderNoBase}, '%') 
+				</if>
+				<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+					and src.order_no_extra = #{orderNoExtra}
+				</if>
+	</select>
+
+	<select id="selectJobOrderProgressSingle" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobOrderProgress">
+		select id
+			, order_type
+			, DATE_FORMAT(order_date,'%Y-%m-%d') as order_date
+			, customer_id
+			, FN_GetCustomerName(customer_id) as customer_name
+			, FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as order_full_no
+			, current_stage
+			, device
+			, customer_user
+			, business_user_id
+			, FN_GetUserName(business_user_id) as business_user_name
+			, design_user_id
+			,  FN_GetUserName(design_user_id) as design_user_name
+			, assembly_id
+			,  FN_GetUserName(assembly_id) as assembly_name
+			, pgm_id
+			,  FN_GetUserName(pgm_id) as pgm_name
+			, wiring_id
+			,  FN_GetUserName(wiring_id) as wiring_name
+			, note
+			, quantity
+			, internal_unit_price
+			, estimated_price
+			, negotiated_price
+			, shipping_date
+			, delivery_date
+			, install_date
+			, real_install_date
+			
+			,design_progress
+			,design_status
+			,design_date
+			,design_start
+			,design_end
+			,assembly_progress
+			,assembly_status
+			,assembly_date
+			,assembly_start
+			,assembly_end
+			,program_progress
+			,program_status
+			,program_date
+			,program_start
+			,program_end
+			,wiring_status
+			,wiring_date
+			,wiring_start
+			,wiring_end
+			,process_progress
+			,process_date
+			,purchase_progress
+			,purchase_date
+	
+			, setup_id
+
+			, (select count(*) from job_design_drawing where src.id = job_design_drawing.order_id) as drawing_count
+			, (select count(*) from job_design_drawing where src.id = job_design_drawing.order_id AND job_design_drawing.process_completed) as drawing_complete				
+			, (select count(*) from job_purchase where src.id = job_purchase.job_order_id) as purchase_count
+			, (select count(*) from job_purchase where src.id = job_purchase.job_order_id AND job_purchase.stage IN ('F' ,'O')) as purchase_in_count				
+	
+		from job_order src
+		where src.id = #{key}
+		limit 1
+	</select>
+
+	<select id="selectJobOrderProgressPage" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobOrderProgress">
+		select id
+			, order_type
+			, DATE_FORMAT(order_date,'%Y-%m-%d') as order_date
+			, customer_id
+			, FN_GetCustomerName(customer_id) as customer_name
+			, FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as order_full_no
+			, current_stage
+			, device
+			, customer_user
+			, business_user_id
+			, FN_GetUserName(business_user_id) as business_user_name
+			, design_user_id
+			,  FN_GetUserName(design_user_id) as design_user_name
+			, assembly_id
+			,  FN_GetUserName(assembly_id) as assembly_name
+			, pgm_id
+			,  FN_GetUserName(pgm_id) as pgm_name
+			, wiring_id
+			,  FN_GetUserName(wiring_id) as wiring_name
+			, note
+			, quantity
+			, internal_unit_price
+			, estimated_price
+			, negotiated_price
+			, shipping_date
+			, delivery_date
+			, install_date
+			, real_install_date
+			
+			,design_progress
+			,design_status
+			,design_date
+			,design_start
+			,design_end
+			,assembly_progress
+			,assembly_status
+			,assembly_date
+			,assembly_start
+			,assembly_end
+			,program_progress
+			,program_status
+			,program_date
+			,program_start
+			,program_end
+			,wiring_status
+			,wiring_date
+			,wiring_start
+			,wiring_end
+			,process_progress
+			,process_date
+			,purchase_progress
+			,purchase_date
+	
+			, setup_id
+			, purchase_none
+			, (select count(*) from job_design_drawing where src.id = job_design_drawing.order_id) as drawing_count
+			, (select count(*) from job_design_drawing where src.id = job_design_drawing.order_id AND job_design_drawing.process_completed) as drawing_complete				
+			, (select count(*) from job_purchase where src.id = job_purchase.job_order_id) as purchase_count
+			, (select count(*) from job_purchase where src.id = job_purchase.job_order_id AND job_purchase.stage IN ('F' ,'O')) as purchase_in_count				
+	
+		from job_order src
+		where 
+				src.deleted = 'N' and src.current_stage not in ('F', 'C')
+				<if test="orderType != null and orderType != ''">
+					and src.order_type = #{orderType}
+				</if>
+		order by id
+		limit #{page}, #{psize}
+	</select>
+
+	<update id="updateEstimation" parameterType="com.yuhannci.erp.model.db.JobOrder">
+	
+		update job_order
+			set 
+				device = #{device}
+				, install_date = #{installDate}
+				, real_install_date = #{realInstallDate}
+				, shipping_date = #{shippingDate}
+				, business_user_id = #{businessUserId}
+				, note = #{note}
+				, quantity = #{quantity}
+				, internal_unit_price = #{internalUnitPrice}
+				, estimated_price = #{estimatedPrice}
+				, negotiated_price = #{negotiatedPrice}
+				,last_modified_user_id = #{lastModifiedUserId}
+				,last_modified_when = now()
+				,moveYN = #{moveYN}
+			where id = #{id}
+	
+	</update>
+	<update id="deleteJob" parameterType="HashMap">
+	
+		update job_order
+			set 
+				deleted = 'Y'
+				,last_modified_user_id = #{lastModifiedUserId}
+				,last_modified_when = now()
+			where id = #{id} 
+				<if test="orderNoBase != null and orderNoExtra != null">
+				and order_no_base = #{orderNoBase}				
+				and order_no_extra = #{orderNoExtra}
+				</if>
+	
+	</update>
+	
+	<update id="markFinishedJob" parameterType="HashMap">
+	
+		update job_order
+			set 
+				current_stage = 'F'
+				,last_modified_user_id = #{lastModifiedUserId}
+				,last_modified_when = now()
+			where id = #{id} 
+				<if test="orderNoBase != null and orderNoExtra != null">
+				and order_no_base = #{orderNoBase}
+				and order_no_extra = #{orderNoExtra}
+				</if>	
+	</update>
+	
+	<update id="markJobDelivered" parameterType="HashMap">
+	
+		update job_order
+			set 
+				current_stage = 'D'
+				,last_modified_user_id = #{lastModifiedUserId}
+				,last_modified_when = now()
+			where id = #{id} 
+	</update>
+		
+	<update id="markJobSetup" parameterType="HashMap">
+	
+		update job_order
+			set 
+				current_stage = 'B'
+				,last_modified_user_id = #{lastModifiedUserId}
+				,last_modified_when = now()
+			where id = #{id} 
+	</update>	
+		
+	<update id="updateJob" parameterType="com.yuhannci.erp.model.db.JobOrder">
+	
+		update job_order set
+			 install_date = #{installDate},
+			 real_install_Date = #{realInstallDate},
+			 device = #{device},
+			 quantity = #{quantity},
+			 shipping_date = #{shippingDate},
+			 business_user_id = #{businessUserId},
+			 design_user_id = #{designUserId},
+			 customer_user = #{customerUser},
+			 internal_Unit_Price = #{internalUnitPrice},
+			 estimated_price = #{estimatedPrice},
+			 note = #{note},
+			 order_date = #{orderDate},
+			 design_date = #{designDate},
+			 purchase_date = #{purchaseDate},
+			 process_date = #{processDate},
+			 test_date = #{processDate},
+			 assembly_date = #{assemblyDate},
+			 program_date = #{programDate},
+			 delivery_date = #{deliveryDate},
+			 
+			 last_modified_user_id = #{lastModifiedUserId},
+			 last_modified_when = now()
+		where
+			id = #{id}
+			
+	</update>
+	
+	<update id="updateDesignProgress" parameterType="com.yuhannci.erp.model.db.JobOrder">
+		update job_order set
+			 design_progress = #{designProgress},
+			 last_modified_user_id = #{lastModifiedUserId},
+			 last_modified_when = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="reUpdateJob" parameterType="com.yuhannci.erp.model.db.JobOrder">
+		update job_order set
+			 order_date = now(),
+			 order_type = #{orderType},
+			 order_no_base = #{orderNoBase},
+			 order_no_extra = #{orderNoExtra},
+			 device = #{device},
+			 business_user_id = #{businessUserId},
+			 design_user_id = #{designUserId},
+			 customer_user = #{customerUser},
+			 note = #{note},
+			 estimated_days = #{estimatedDays},
+			 quantity = #{quantity},
+			 internal_unit_price = #{internalUnitPrice},
+			 estimated_price = #{estimatedPrice},
+			 negotiated_price = #{negotiatedPrice},
+			 shipping_date = #{shippingDate},
+			 install_date = #{installDate},
+			 real_install_date = #{realInstallDate},
+			 delivery_date = #{deliveryDate},
+			 program_date = #{programDate},
+			 design_date = #{designDate},
+			 process_date = #{processDate},
+			 test_date = #{testDate},
+			 assembly_date = #{assemblyDate},
+			 current_stage = 'A',
+			 design_progress = 0,
+			 design_status = 'R',
+			 design_start = null,
+			 design_end = null,
+			 assembly_progress = 0,
+			 assembly_status = 'R',
+			 assembly_start = null,
+			 assembly_end = null,
+			 program_progress = 0,
+			 program_status = 'R',
+			 program_start = null,
+			 program_end = null,
+			 wiring_status = 'R',
+			 wiring_start = null,
+			 wiring_end = null,
+			 process_progress = 0,
+			 purchase_progress = 0,
+			 purchase_date = null,
+			 reMake = 'Y'
+		where
+			id = #{id}
+	
+	</update>
+	
+	
+	
+	<insert id="insertJob" parameterType="com.yuhannci.erp.model.db.JobOrder" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+	
+		insert into job_order	(order_date 
+								, order_type
+								, customer_id
+								, order_no_base
+								, order_no_extra
+								
+								, device
+								, business_user_id
+								, design_user_id
+								, customer_user
+								
+								, note
+								, estimated_days
+								, quantity
+								, internal_unit_price
+								, estimated_price
+								
+								, negotiated_price
+								, shipping_date
+								, install_date
+								, real_install_date
+								
+								, delivery_date
+								, program_date
+								, design_date
+								, process_date
+								, test_date
+								
+								, assembly_date
+								
+								, current_stage
+								
+								, moveYN
+								 )
+			values(
+				now(),
+				#{orderType},
+				#{customerId},
+				#{orderNoBase},
+				#{orderNoExtra},
+				
+				#{device},
+				#{businessUserId},
+				#{designUserId},
+				#{customerUser},
+				
+				#{note},
+				#{estimatedDays},
+				#{quantity},
+				#{internalUnitPrice},
+				#{estimatedPrice},
+				
+				#{negotiatedPrice},
+				#{shippingDate},
+				#{installDate},
+				#{realInstallDate},
+				
+				#{deliveryDate},
+				#{programDate},
+				#{designDate},
+				#{processDate},
+				#{testDate},
+				
+				#{assemblyDate},		
+				
+				'A',
+				
+				#{moveYN}
+				
+			);
+			
+			
+	
+	</insert>
+	
+	<select id="selectJobOrderFromPush" parameterType="Long" resultType="String">
+		
+		select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as order_no
+
+		from job_order
+		
+		where id = #{id}
+		
+	</select>
+
+</mapper>

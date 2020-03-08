@@ -1,0 +1,441 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.ProcessBillMapper">
+
+	<!-- 아직 명세서가 발생 안된 가공/후처리 목록 -->
+	<select id="selectUnpublishedStatementCount" resultType="Integer">
+		select  count(*)
+		from 
+		(
+			select id
+					, partner_id
+					, request_type
+					, sum((quantity + spare)) as drawings
+					, sum((quantity + spare) * unit_price) as order_total
+					, FN_GetDisplayOutsourcingOrderNo(partner_id, request_type, id) as outsourcing_order_no
+					
+					, (select uid from job_partner_outsourcing_order where id = src1.id and partner_id = src1.partner_id and request_type = src1.request_type limit 1) as uid
+			from job_partner_outsourcing_order  src1
+			where
+				statement_of_account_detail_id is null
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and request_date between #{orderDateFrom} and date_add(#{orderDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and request_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and request_date <![CDATA[ < ]]> date_add(#{orderDateTo}, interval 1 day)
+				</when>
+			</choose> 							
+			<choose>
+				<when test="carryInDateFrom != null and orderDateTo != null">
+					and delivery_date between #{carryInDateFrom} and date_add(#{orderDateTo}, interval 1 day)
+				</when>
+				<when test="carryInDateFrom != null">
+					and delivery_date <![CDATA[ >= ]]> #{carryInDateFrom} 
+				</when>
+				<when test="carryInDateTo != null">
+					and delivery_date <![CDATA[ < ]]> date_add(#{carryInDateTo}, interval 1 day)
+				</when>
+			</choose> 				
+			<choose>
+				<when test="includeProcessing and includePostprocessing">
+					and request_type in ('P', 'C')
+				</when>
+				<when test="includeProcessing">
+					and request_type = 'P'
+				</when>
+				<when test="includePostprocessing">
+					and request_type = 'C'
+				</when>
+			</choose>
+							
+			<if test="outsourcingPartnerId != null">
+				and partner_id = #{outsourcingPartnerId}
+			</if>			 
+			group by job_order_id, id, partner_id, request_type
+		
+			
+		) src 
+			inner join job_partner_outsourcing_order RAW on src.uid = RAW.uid
+			inner join job_order on RAW.job_order_id = job_order.id 
+		
+		order by src.id desc, src.partner_id
+	
+	
+	
+	</select>
+	<select id="selectUnpublishedStatement" resultType="com.yuhannci.erp.model.db.StatementEntry">
+	
+		select  src.id
+				, src.partner_id
+				, src.request_type
+				, src.job_order_id
+				,(select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where job_order.id = src.job_order_id) as order_no
+				, FN_GetPartnerName(src.partner_id) as partner_name
+				, FN_GetDisplayOutsourcingOrderNo(src.partner_id, src.request_type, src.id) as outsourcing_order_no				
+				, RAW.request_date
+				, (select FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) from job_design_drawing where id = RAW.job_design_drawing_id) as representive_drawing_no
+				, FN_GetCustomerName(job_order.customer_id) as representive_customer_name
+				, job_order.device as representive_device				
+				, drawings
+				, RAW.delivery_date
+				, order_total
+				, job_order.id as orderId
+		from 
+		(
+			select id
+				, job_order_id
+				, partner_id
+				, request_type
+				, sum((quantity + spare)) as drawings
+				, sum((quantity + spare) * unit_price) as order_total
+				, FN_GetDisplayOutsourcingOrderNo(partner_id, request_type, id) as outsourcing_order_no				
+				, (select uid from job_partner_outsourcing_order where id = src1.id and partner_id = src1.partner_id and request_type = src1.request_type limit 1) as uid
+			from job_partner_outsourcing_order  src1
+			where
+				statement_of_account_detail_id is null
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and request_date between #{orderDateFrom} and date_add(#{orderDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and request_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and request_date <![CDATA[ < ]]> date_add(#{orderDateTo}, interval 1 day)
+				</when>
+			</choose> 							
+			<choose>
+				<when test="carryInDateFrom != null and orderDateTo != null">
+					and delivery_date between #{carryInDateFrom} and date_add(#{orderDateTo}, interval 1 day)
+				</when>
+				<when test="carryInDateFrom != null">
+					and delivery_date <![CDATA[ >= ]]> #{carryInDateFrom} 
+				</when>
+				<when test="carryInDateTo != null">
+					and delivery_date <![CDATA[ < ]]> date_add(#{carryInDateTo}, interval 1 day)
+				</when>
+			</choose> 				
+			<choose>
+				<when test="includeProcessing and includePostprocessing">
+					and request_type in ('P', 'C')
+				</when>
+				<when test="includeProcessing">
+					and request_type = 'P'
+				</when>
+				<when test="includePostprocessing">
+					and request_type = 'C'
+				</when>
+			</choose>			
+			<if test="outsourcingPartnerId != null">
+				and partner_id = #{outsourcingPartnerId}
+			</if>
+			
+			<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+				and (select order_no_base from job_order where id = src1.job_order_id) like concat('%', #{orderNoBase}, '%')
+			</if>
+			<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+				and (select drawing_no from job_design_drawing where id = src1.job_design_drawing_id) like concat('%', #{orderNoExtra}, '%')
+			</if>			 
+			group by job_order_id, id, partner_id, request_type
+			
+		) src 
+			inner join job_partner_outsourcing_order RAW on src.uid = RAW.uid
+			inner join job_order on RAW.job_order_id = job_order.id 
+		
+		order by src.id desc, src.partner_id
+	
+		<if test="length != null and length != -1">
+			limit #{start}, #{length}
+		</if>
+	
+	</select>
+
+	<!-- 거래명세표 등록 대상 리스트 -->
+	<select id="selectRegPrepareList" resultType="com.yuhannci.erp.model.db.StatementRegEntry" >
+	
+		select
+			ORDR.uid, 
+			FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) as designDrawingNo,
+			description,
+			material,
+			thermal,
+			ORDR.quantity,
+			ORDR.spare,
+			postprocessing,
+			(case ORDR.request_type when 'P' then process_finish_date else coating_date end) as finish_date,
+			
+			'' as item_name,
+			(ORDR.quantity + ORDR.spare) as total_quantity,
+			unit_price
+			
+		from 	(select * from job_partner_outsourcing_order where id = #{id} and partner_id = #{partnerId} and request_type = #{requestType}) ORDR 
+					inner join 
+				job_design_drawing DRAWING 
+					on ORDR.job_design_drawing_id = DRAWING.id
+				where DRAWING.order_id = #{orderId}
+		
+	</select>
+
+	<!-- 가공용 거래명세표 원장 등록 -->
+	<insert id="insertStatementMaster" keyProperty="id" keyColumn="id" parameterType="com.yuhannci.erp.model.db.StatementAccountEntry" useGeneratedKeys="true">
+	
+		insert into statement_of_account
+			(issue_date, partner_type_kind, partner_id, reg_datetime, request_id, job_order_id, sum_price, nego_price)
+		values
+			( #{issueDate}, 'S', #{partnerId}, now(), #{requestId}, #{jobOrderId}, #{sumPrice}, #{negoPrice} ) 
+	
+	</insert>
+	
+	<!-- 거래명세표 상세 내역 등록 -->
+	<insert id="insertStatementDetail" keyProperty="id" keyColumn="id" parameterType="com.yuhannci.erp.model.db.StatementAccountDetailEntry" useGeneratedKeys="true">
+	
+		insert into statement_of_account_detail
+			(issue_id
+				, job_design_drawing_id
+				, job_outsourcing_order_uid
+				, issued_item_name
+				, issued_quantity
+				, issued_unit_price)
+		values
+			(#{issueId}
+				, (select job_design_drawing_id from job_partner_outsourcing_order where uid = #{jobOutsourcingOrderUid})
+				, #{jobOutsourcingOrderUid}
+				, #{issuedItemName}
+				, #{issuedQuantity}
+				, #{issuedUnitPrice} )
+	
+	</insert>
+	
+	<!-- 외주 가공건에 대해 거래명세표가 발행됐음을 표기 -->
+	<update id="markStatementIssued" >
+	
+		update job_partner_outsourcing_order
+		set
+			statement_of_account_detail_id = #{issueDetailId}
+		where
+			uid = #{uid}
+	
+	</update>
+
+	<update id="updateStatementMasterSumPrice">
+	
+		update statement_of_account
+		set
+			sum_price = (select sum(issued_unit_price * issued_quantity) from statement_of_account_detail where statement_of_account_detail.issue_id = statement_of_account.id  )
+		where
+			id = #{issueId}
+	
+	</update>
+	
+	<select id="lookupJobOrderId" resultType="Long">
+	
+		select DISTINCT job_order_id
+		from
+			job_partner_outsourcing_order 
+		where
+			id = #{id} and request_type = #{requestType} and partner_id = #{partnerId}
+	
+	</select>
+	
+	<select id="orderIdselectFromstatementMM" resultType="Long">
+	
+		select DISTINCT job_order_id
+		from
+			job_partner_outsourcing_order 
+		where
+			id = #{id} and request_type = #{requestType} and partner_id = #{partnerId}
+	
+	</select>
+	
+	<select id="selectPublishedStatement" resultType="com.yuhannci.erp.model.db.StatementListEntry">
+
+		select
+			FN_GetPartnerName(partner_id) as partner_name
+			, id
+			, concat(DATE_FORMAT(reg_datetime, '%Y%m%d'), '-', partner_id, '-', id MOD 10) as statement_no
+			, issue_date 
+			, outsourcing_order_no
+			
+			, reg_datetime
+			, outsourcing_request_date
+			, outsourcing_order_no
+			, representive_drawing_no
+			, drawing_count
+			, amount
+		from
+		(							
+			select							
+				M.id
+				, M.partner_id
+				, M.issue_date
+				, M.reg_datetime
+				, O.request_date as outsourcing_request_date
+				, FN_GetDisplayOutsourcingOrderNo(O.partner_id, O.request_type, O.id) as outsourcing_order_no
+				, (select FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) 
+							from job_design_drawing DRAWING where DRAWING.id = D.job_design_drawing_id) as  representive_drawing_no
+				, count(*) as drawing_count
+				, sum( (issued_quantity) * issued_unit_price ) as amount
+			from
+				statement_of_account M 
+					inner join
+				statement_of_account_detail D				on M.id = D.issue_id
+					inner join 
+				job_partner_outsourcing_order O				on D.job_outsourcing_order_uid = O.uid
+			where
+				M.partner_type_kind = 'S'
+				<choose>
+					<when test="orderDateFrom != null and orderDateTo != null">
+						and O.request_date between #{orderDateFrom} and date_add(#{orderDateDateTo}, interval 1 day)
+					</when>
+					<when test="orderDateFrom != null">
+						and O.request_date <![CDATA[ >= ]]> #{orderDateFrom} 
+					</when>
+					<when test="orderDateTo != null">
+						and O.request_date <![CDATA[ < ]]> date_add(#{orderDateDateTo}, interval 1 day)
+					</when>
+				</choose> 							
+				<choose>
+					<when test="carryInDateFrom != null and orderDateTo != null">
+						and O.delivery_date between #{carryInDateFrom} and date_add(#{orderDateTo}, interval 1 day)
+					</when>
+					<when test="carryInDateFrom != null">
+						and O.delivery_date <![CDATA[ >= ]]> #{carryInDateFrom} 
+					</when>
+					<when test="carryInDateTo != null">
+						and O.delivery_date <![CDATA[ < ]]> date_add(#{carryInDateTo}, interval 1 day)
+					</when>
+				</choose> 				
+				<choose>
+					<when test="includeProcessing and includePostprocessing">
+						and O.request_type in ('P', 'C')
+					</when>
+					<when test="includeProcessing">
+						and O.request_type = 'P'
+					</when>
+					<when test="includePostprocessing">
+						and O.request_type = 'C'
+					</when>
+				</choose>			
+				<if test="outsourcingPartnerId != null">
+					and M.partner_id = #{outsourcingPartnerId}
+				</if>
+			group by M.id, M.partner_id, M.reg_datetime, M.issue_date
+		) src
+		<if test="length != null and length != -1">
+			limit #{start}, #{length}
+		</if>		 		
+	</select>
+
+	<select id="selectPublishedStatementCount" resultType="Integer">
+
+		select
+			count(*)
+		from
+		(							
+			select							
+				M.id
+				, M.partner_id
+				, M.issue_date
+				, M.reg_datetime
+				, O.request_date as outsourcing_request_date
+				, FN_GetDisplayOutsourcingOrderNo(O.partner_id, O.request_type, O.id) as outsourcing_order_no
+				, (select FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) 
+							from job_design_drawing DRAWING where DRAWING.id = D.job_design_drawing_id) as  representive_drawing_no
+				, count(*) as drawing_count
+				, sum( (issued_quantity) * issued_unit_price ) as amount
+			from
+				statement_of_account M 
+					inner join
+				statement_of_account_detail D				on M.id = D.issue_id
+					inner join 
+				job_partner_outsourcing_order O				on D.job_outsourcing_order_uid = O.uid
+			where
+				M.partner_type_kind = 'S'
+				<choose>
+					<when test="orderDateFrom != null and orderDateTo != null">
+						and O.request_date between #{orderDateFrom} and date_add(#{orderDateDateTo}, interval 1 day)
+					</when>
+					<when test="orderDateFrom != null">
+						and O.request_date <![CDATA[ >= ]]> #{orderDateFrom} 
+					</when>
+					<when test="orderDateTo != null">
+						and O.request_date <![CDATA[ < ]]> date_add(#{orderDateDateTo}, interval 1 day)
+					</when>
+				</choose> 							
+				<choose>
+					<when test="carryInDateFrom != null and orderDateTo != null">
+						and O.delivery_date between #{carryInDateFrom} and date_add(#{orderDateTo}, interval 1 day)
+					</when>
+					<when test="carryInDateFrom != null">
+						and O.delivery_date <![CDATA[ >= ]]> #{carryInDateFrom} 
+					</when>
+					<when test="carryInDateTo != null">
+						and O.delivery_date <![CDATA[ < ]]> date_add(#{carryInDateTo}, interval 1 day)
+					</when>
+				</choose> 				
+				<choose>
+					<when test="includeProcessing and includePostprocessing">
+						and O.request_type in ('P', 'C')
+					</when>
+					<when test="includeProcessing">
+						and O.request_type = 'P'
+					</when>
+					<when test="includePostprocessing">
+						and O.request_type = 'C'
+					</when>
+				</choose>			
+				<if test="outsourcingPartnerId != null">
+					and M.partner_id = #{outsourcingPartnerId}
+				</if>
+			group by M.id, M.partner_id, M.reg_datetime, M.issue_date
+		) src
+	 		
+	</select>
+
+	<select id="selectSingleStatement" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.StatementAccountEntry">
+	
+		select 
+			P.corporate_num
+			, P.corporate_phone
+			, P.partner_name			
+			, S.*
+			
+		from statement_of_account S inner join job_partner P on S.partner_id = P.id 
+		where
+			S.id = #{statementId}
+	
+	</select>
+	
+	<!-- 거래명세표 항목 조회 -->
+	<select id="selectStatementDetail" parameterType="HashMap"  resultType="com.yuhannci.erp.model.db.StatementAccountDetailEntry">
+	
+		select
+			FN_GetDisplayDrawingNo(DRAWING.order_type, DRAWING.order_no_base, DRAWING.order_no_extra, DRAWING.drawing_no) as representive_drawing_no
+			, D.id
+			, D.issued_item_name 
+			, D.issued_quantity
+			, D.issued_unit_price
+		from	statement_of_account_detail D inner join job_partner_outsourcing_order O on D.job_outsourcing_order_uid = O.uid
+											inner join job_design_drawing DRAWING on D.job_design_drawing_id = DRAWING.id    
+		where 
+			issue_id = #{statementId}		
+	
+	</select>
+	
+	<select id="orderIdFromstatementProcess" parameterType="String"  resultType="Long">
+	
+		select order_id from job_design_drawing where FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) = #{no}
+	
+	</select>
+	
+	<select id="orderNoFNfromstatement" parameterType="String"  resultType="Long">
+	
+		select id from job_order where FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) = #{orderNo}
+	
+	</select>
+
+</mapper>

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.JobMctViewDataMapper">
+
+	<!-- 현재는 그냥 select 하고 있으나
+		아래 SubMenu 가 포함된 Top Menu 만 나오도록 수정해야함
+	 -->
+	<select id="selectList" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobMctViewData">
+			select
+				dw.id as drawing_id, 
+				dw.description,
+				dw.material,
+				dw.thermal,
+				dw.postprocessing,
+				dw.quantity,
+				dw.spare,
+				dw.order_type,
+				dw.order_no_base,
+				dw.order_no_extra,
+				dw.drawing_no,
+				FN_GetDisplayDrawingNo(dw.order_type, dw.order_no_base, dw.order_no_extra, dw.drawing_no) as drawing_full_no,
+				dw.process_finish_plan_date as finish_date,
+				(select install_date from job_order where id=dw.order_id) as install_date,
+				(select process_date from job_order where id=dw.order_id) as process_date,
+				FN_GetTypeName('job_design_drawing', dw.work_status) as work_status_text,
+				mct.id as mct_his_id,
+				mct.mct_id as mct_num,
+				mct.user_id,
+				FN_GetUserName(mct.user_id) as user_name,
+				mct.start_datetime,
+				mct.end_datetime,
+				mct.work_quantity,
+				mct.finish_status,
+				FN_GetTypeName('job_mct_history', mct.finish_status) as finish_status_name
+			from job_design_drawing as dw
+				LEFT JOIN job_mct_history as mct
+				ON dw.id=mct.drawing_id
+			where dw.current_stage = 'C'
+				AND dw.work_position = 'I'
+				AND dw.work_status != 'C'
+			order by drawing_full_no;
+			
+	</select>
+
+</mapper>

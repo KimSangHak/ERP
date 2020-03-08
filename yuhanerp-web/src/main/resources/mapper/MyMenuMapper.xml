@@ -1,0 +1,2766 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.MyMenuMapper">
+
+
+	<select id="roundRobinSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			FN_GetUserName(d.request_usr) as usr_name,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo, d.round_kind,
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		where d.request_usr = #{userId} and d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.stage = 'R'
+		</if>
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="roundRobinSelectDeleted" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			(select name from user where id = d.delete_user_id) as usrName,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo, d.round_kind, d.delete_reason, 
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		where d.request_usr = #{userId} and d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+	
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="roundRobinSelectDeletedAll" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			(select name from user where id = d.delete_user_id) as usrName,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo, d.round_kind, d.delete_reason, 
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		where d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+	
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="roundRobinSelectDeletedManager" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			(select name from user where id = d.delete_user_id) as usrName,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo, d.round_kind, d.delete_reason, 
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		where  d.request_dept = #{deptCode} and d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+	
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="purchaseroundRobinSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			(select name from user where id = d.request_usr) as usrName,
+ 			(select dept_name from dept_data where id = request_dept) as deptName,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo, d.round_kind,
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		where d.deleted = 'N' and round_kind = 'P' and stage='P' and conform_stage='C'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="selectAllCustomer" resultType="com.yuhannci.erp.model.db.Customer">
+		select * from customer
+		order by name;
+		
+	</select>
+	
+	<insert id="insertRobin" parameterType="com.yuhannci.erp.model.db.RoundRobin" >
+	
+		insert into round_robin (roundNo,
+		   						 job_order_id, 
+		                         title, 
+		                         request_reason, 
+		                         reg_date, 
+		                         request_dept, 
+		                         request_usr, 
+		                         request_date,
+		                         description, 
+		                         model_no, 
+		                         maker, 
+		                         customer_id, 
+		                         quantity, 
+		                         stage,
+		                         conform_stage, 
+		                         sign_r)
+				values
+				
+				(#{roundNo},
+				 #{jobOrderId}, 
+				 #{title}, 
+				 #{requestReason}, 
+				 now(), 
+				 #{requestDept}, 
+				 #{requestUsr}, 
+				 #{requestDate},
+				 #{description}, 
+				 #{modelNo}, 
+				 #{maker},
+				 #{customerId},  
+				 #{quantity}, 
+				 'R', 
+				 'R', 
+				 #{signR} )
+			
+	</insert>
+	
+	<insert id="insertRobinToM" parameterType="com.yuhannci.erp.model.db.RoundRobin" >
+	
+		insert into round_robin (roundNo,
+		   						 job_order_id, 
+		                         title, 
+		                         request_reason, 
+		                         reg_date, 
+		                         request_dept, 
+		                         request_usr, 
+		                         request_date,
+		                         description,
+		                         model_no, 
+		                         maker, 
+		                         customer_id, 
+		                         quantity, 
+		                         stage,
+		                         conform_stage, 
+		                         sign_r,
+		                         sign_m,
+		                         m_date)
+				values
+				
+				(#{roundNo},
+				 #{jobOrderId}, 
+				 #{title}, 
+				 #{requestReason}, 
+				 now(), 
+				 #{requestDept}, 
+				 #{requestUsr}, 
+				 #{requestDate},
+				 #{description}, 
+				 #{modelNo}, 
+				 #{maker},
+				 #{customerId},  
+				 #{quantity}, 
+				 'R', 
+				 'M', 
+				 #{signR},
+				 #{signM},
+				 now())
+			
+	</insert>
+	
+	<select id="detailRobinOne" parameterType="String" resultType="com.yuhannci.erp.model.db.RoundRobin">
+		select *,
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = job_order_id) as job_order_no,
+		(select dept_name from dept_data where id = request_dept) as deptName,
+		(select name from user where id = request_usr) as usrName,
+		(select position from user where id = request_usr) as position,
+		(select name from customer where id = customer_id) as customerName
+		from round_robin where roundNo = #{roundNo} LIMIT 1
+	</select>
+	
+	<select id="detailRobinAll" parameterType="String" resultType="com.yuhannci.erp.model.db.RoundRobin">
+		select *
+		from round_robin where roundNo = #{roundNo}
+		
+	</select>
+	
+	<update id="delteRobin" parameterType="HashMap">
+	
+		update round_robin set
+			deleted = 'Y',
+			delete_reason = #{deleteReason},
+			delete_user_id = #{deleteUserId}
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="delteLeave" parameterType="HashMap">
+	
+		update leave_application set
+			deleted = 'Y',
+			delete_reason = #{deleteReason},
+			delete_user_id = #{deleteUserId}
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="delteOverwork" parameterType="HashMap">
+	
+		update over_work set
+			deleted = 'Y',
+			delete_reason = #{deleteReason},
+			delete_user_id = #{deleteUserId}
+		where
+			id = #{id}
+	
+	</update>
+	
+	
+	<select id="managerDeptCode" parameterType="String" resultType="String">
+		select id from dept_data where manager_id = #{userId}
+		
+	</select>
+	
+	<select id="roundRobinManagerSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			(select name from user where id = d.request_usr) as usrName,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo,
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		<where> 
+ 		
+ 		
+ 		d.request_dept in		
+			<foreach collection="DeptCode" item="V" open="(" close=")" separator=",">
+				#{V}
+			</foreach>
+			
+		and d.deleted = 'N' and conform_stage = 'R'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		</where>
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveManagerSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*, 
+ 			
+ 			(select name from user where id = d.request_usr) as usrName
+ 		from leave_application d
+ 		
+ 		where
+ 		
+ 		
+ 		d.request_dept in		
+			<foreach collection="DeptCode" item="V" open="(" close=")" separator=",">
+				#{V}
+			</foreach>
+			
+		and d.deleted = 'N' and conform_stage = 'R'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title = #{title}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkManagerSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*, 
+ 			
+ 			(select name from user where id = d.request_usr) as usrName
+ 		from over_work d
+ 		
+ 		where
+ 		
+ 		
+ 		d.request_dept in		
+			<foreach collection="DeptCode" item="V" open="(" close=")" separator=",">
+				#{V}
+			</foreach>
+			
+		and d.deleted = 'N' and conform_stage = 'R'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title = #{title}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="roundRobinDirectoSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			(select name from user where id = d.request_usr) as usrName,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo,
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		<where> 
+
+		d.deleted = 'N' and d.conform_stage = 'P'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		</where>
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="roundRobinPurchaseSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			(select name from user where id = d.request_usr) as usrName,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo,
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		<where> 
+
+		d.deleted = 'N' and d.conform_stage = 'M' and round_kind != 'M'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		</where>
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveDirectoSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			(select name from user where id = d.request_usr) as usrName
+ 		from leave_application d
+ 		
+ 		where
+
+		(d.deleted = 'N' and d.conform_stage = 'M' and d.kind_dept = 'A') || (d.request_dept in('FM', 'T2') and d.conform_stage in('R','M') and d.deleted = 'N')
+
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title = #{title}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkDirectoSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			(select name from user where id = d.request_usr) as usrName
+ 		from over_work d
+ 		
+ 		where
+
+		(d.deleted = 'N' and d.conform_stage = 'M' and d.kind_dept = 'A') || (d.request_dept in('FM', 'T2') and d.conform_stage in('R','M') and d.deleted = 'N')
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title = #{title}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveFactorySelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			(select name from user where id = d.request_usr) as usrName
+ 		from leave_application d
+ 		
+ 		where
+
+		(d.deleted = 'N' and d.conform_stage = 'M' and d.kind_dept = 'B') || (d.request_dept = 'AD' and d.conform_stage in('R','M') and d.deleted = 'N')
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title = #{title}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkFactorySelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			(select name from user where id = d.request_usr) as usrName
+ 		from over_work d
+ 		
+ 		where
+
+		(d.deleted = 'N' and d.conform_stage = 'M' and d.kind_dept = 'B') || (d.request_dept = 'AD' and d.conform_stage in('R','M') and d.deleted = 'N')
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title = #{title}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="roundRobinCEOSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			(select name from user where id = d.request_usr) as usrName,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo,
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		<where> 
+
+		d.deleted = 'N' and d.conform_stage in('P','J')
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		</where>
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveCEOSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			(select name from user where id = d.request_usr) as usrName
+ 		from leave_application d
+ 		
+ 		where
+
+		d.deleted = 'N' and d.conform_stage = 'J'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title = #{title}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkCEOSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			(select name from user where id = d.request_usr) as usrName
+ 		from over_work d
+ 		
+ 		where
+
+		d.deleted = 'N' and d.conform_stage = 'J'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title = #{title}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="roundRobinAlltoSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			(select name from user where id = d.request_usr) as usrName,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo,
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		<where> 
+
+		d.deleted = 'N' and conform_stage != 'C'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		</where>
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="directorYN" parameterType="String" resultType="String">
+		select is_director from user where id = #{userId}
+	</select>
+	
+	<select id="ceoYN" parameterType="String" resultType="String">
+		select is_ceo from user where id = #{userId}
+	</select>
+	
+	<update id="conformM" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_m = #{signPath},
+			conform_stage = 'M',
+			m_date = now()
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="leaveConformM" parameterType="HashMap">
+	
+		update leave_application 
+		
+		set
+			sign_m = #{signPath},
+			conform_stage = 'M',
+			m_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="overworkConformM" parameterType="HashMap">
+	
+		update over_work 
+		
+		set
+			sign_m = #{signPath},
+			conform_stage = 'M',
+			m_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="conformD" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_j = #{signPath},
+			round_kind = #{roundKind},
+			conform_stage = 'J',
+			j_date = now()
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="conformDAll" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_j = #{signPath2},
+			round_kind = #{roundKind},
+			conform_stage = 'C',
+			j_date = now(),
+			sign_c = #{signPath1},
+			c_date = now(),
+			stage = 'P'
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="leaveconformD" parameterType="HashMap">
+	
+		update leave_application 
+		
+		set
+			sign_j = #{signPath},
+			conform_stage = 'J',
+			j_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="overworkconformD" parameterType="HashMap">
+	
+		update over_work 
+		
+		set
+			sign_j = #{signPath},
+			conform_stage = 'J',
+			j_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="conformDtoR" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_m = #{signPath},
+			m_date = now(),
+			sign_j = #{signPath},
+			round_kind = #{roundKind},
+			conform_stage = 'J',
+			j_date = now()
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="leaveconformDtoR" parameterType="HashMap">
+	
+		update leave_application 
+		
+		set
+			sign_m = #{signPath},
+			m_date = now(),
+			sign_j = #{signPath},
+			conform_stage = 'J',
+			j_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="overworkconformDtoR" parameterType="HashMap">
+	
+		update over_work 
+		
+		set
+			sign_m = #{signPath},
+			m_date = now(),
+			sign_j = #{signPath},
+			conform_stage = 'J',
+			j_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="conformCEO" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_c = #{signPath},
+			conform_stage = 'C',
+			stage = 'P',
+			c_date = now()
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="conformCEOFromJ" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_j = #{signPath1},
+			j_date = now(),
+			sign_c = #{signPath2},
+			conform_stage = 'C',
+			stage = 'P',
+			c_date = now()
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="leaveconformCEO" parameterType="HashMap">
+	
+		update leave_application 
+		
+		set
+			sign_c = #{signPath},
+			conform_stage = 'C',
+			complet = 'Y',
+			c_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="overworkconformCEO" parameterType="HashMap">
+	
+		update over_work 
+		
+		set
+			sign_c = #{signPath},
+			conform_stage = 'C',
+			complet = 'Y',
+			c_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="conformCEOtoR" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_m = #{signPath},
+			m_date = now(),
+			sign_j = #{signPath},
+			round_kind = 'P',
+			j_date = now(),
+			sign_c = #{signPath},
+			conform_stage = 'C',
+			stage = 'P',
+			c_date = now()
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="leaveconformCEOtoR" parameterType="HashMap">
+	
+		update leave_application 
+		
+		set
+			sign_m = #{signPath},
+			m_date = now(),
+			sign_j = #{signPath},
+			j_date = now(),
+			sign_c = #{signPath},
+			conform_stage = 'C',
+			complet = 'Y',
+			c_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="overworkconformCEOtoR" parameterType="HashMap">
+	
+		update over_work 
+		
+		set
+			sign_m = #{signPath},
+			m_date = now(),
+			sign_j = #{signPath},
+			j_date = now(),
+			sign_c = #{signPath},
+			conform_stage = 'C',
+			complet = 'Y',
+			c_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="conformCEOtoM" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_j = #{signPath},
+			round_kind = 'P',
+			j_date = now(),
+			sign_c = #{signPath},
+			conform_stage = 'C',
+			stage = 'P',
+			c_date = now()
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="leaveconformCEOtoM" parameterType="HashMap">
+	
+		update leave_application 
+		
+		set
+			sign_j = #{signPath},
+			j_date = now(),
+			sign_c = #{signPath},
+			conform_stage = 'C',
+			complet = 'Y',
+			c_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="overworkconformCEOtoM" parameterType="HashMap">
+	
+		update over_work 
+		
+		set
+			sign_j = #{signPath},
+			j_date = now(),
+			sign_c = #{signPath},
+			conform_stage = 'C',
+			complet = 'Y',
+			c_date = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="conformAllToM" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_j = #{signPath},
+			j_date = now(),
+			round_kind = 'P',
+			sign_c = #{signPath},
+			conform_stage = 'C',
+			stage = 'P',
+			c_date = now()
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="conformAllToAll" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_m = #{signPath},
+			m_date = now(),
+			sign_j = #{signPath},
+			j_date = now(),
+			round_kind = 'P',
+			sign_c = #{signPath},
+			conform_stage = 'C',
+			stage = 'P',
+			c_date = now()
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="conformPToAll" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_m = #{signPath1},
+			m_date = now(),
+			sign_p = #{signPath2},
+			p_date = now(),
+			round_kind = 'P',
+			conform_stage = 'P'
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="conformPToAllround" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_m = #{signPath1},
+			m_date = now(),
+			sign_p = #{signPath2},
+			p_date = now(),
+			sign_j = #{signPath1},
+			j_date = now(),
+			sign_c = #{signPath1},
+			c_date = now(),
+			round_kind = 'P',
+			conform_stage = 'C',
+			stage = 'P'
+			
+			
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="conformPToAllroundStageM" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_p = #{signPath2},
+			p_date = now(),
+			sign_j = #{signPath1},
+			j_date = now(),
+			sign_c = #{signPath1},
+			c_date = now(),
+			round_kind = 'P',
+			conform_stage = 'C',
+			stage = 'P'
+			
+			
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="conformPToDo" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			sign_p = #{signPath},
+			p_date = now(),
+			round_kind = 'P',
+			conform_stage = 'P'
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<update id="setPriceForPurchaseConfrom" parameterType="HashMap">
+	
+		update round_robin 
+		
+		set
+			price = #{price}
+			
+		where
+			id = #{id}
+	
+	</update>
+	
+	<select id="getRoundrobinStage" parameterType="String" resultType="String">
+		select conform_stage from round_robin where roundNo = #{roundNo} limit 1;
+		
+	</select>
+	
+	<select id="getLeaveStage" parameterType="Long" resultType="String">
+		select conform_stage from leave_application where id = #{id}
+		
+	</select>
+	
+	<select id="getOverworkStage" parameterType="Long" resultType="String">
+		select conform_stage from over_work where id = #{id}
+		
+	</select>
+	
+	
+	
+	<update id="roundRobinStageF" parameterType="String">
+	
+		update round_robin 
+		
+		set
+			
+			stage = 'F'
+
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<select id="getConsumablesOrderId" resultType="Long">
+		select id from job_order where order_no_base = 'ZZZZZ'
+		
+	</select>
+	
+	<select id="isManagerRoundrobin" parameterType="String" resultType="String" >
+		select is_manager from user where id = #{usrId}
+		
+	</select>
+	
+	<select id="isFactoryRoundrobin" parameterType="String" resultType="String">
+		select is_factory_manager from user where id = #{usrId}
+		
+	</select>
+	
+	<select id="isDirectorRoundrobin" parameterType="String" resultType="String">
+		select is_director from user where id = #{usrId}
+		
+	</select>
+	
+	<select id="isCEORoundrobin" parameterType="String" resultType="String">
+		select is_ceo from user where id = #{usrId}
+		
+	</select>
+	
+	<select id="isPQroundrobin" parameterType="String" resultType="String">
+		select dept_code from user where id = #{usrId}
+		
+	</select>
+	
+	<select id="usrNameForIdroundrobin" parameterType="String" resultType="String">
+		select id from user where name = #{usrName}
+		
+	</select>
+	
+	<select id="deptCodeFromRoundrobin" parameterType="String" resultType="String">
+		select dept_code from user where id = #{usrId}
+		
+	</select>
+	
+	
+	
+	
+	<select id="roundRobinSelectDirector" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			FN_GetUserName(d.request_usr) as usr_name,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo, d.round_kind,
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		where d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.stage = 'R'
+		</if>
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="roundRobinSelectManager" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RoundRobin">
+	
+		select 
+ 			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+ 			FN_GetUserName(d.request_usr) as usr_name,
+ 			d.job_order_id, d.title, d.reg_date, d.conform_stage, d.stage, d.roundNo, d.round_kind,
+ 			count(*) as count
+ 		from round_robin d
+ 		
+ 		where  d.request_dept = #{deptCode} and d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.stage = 'R'
+		</if>
+ 		group by d.roundNo
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="requestUsrIdRounrobin" parameterType="String" resultType="String">
+		select request_usr from round_robin where roundNo = #{roundNo} limit 1;
+		
+	</select>
+	
+	<select id="requestUsrIdLeave" parameterType="Long" resultType="String">
+		select request_usr from leave_application where id = #{id}
+		
+	</select>
+	
+	<select id="requestUsrIdOverwork" parameterType="Long" resultType="String">
+		select request_usr from over_work where id = #{id}
+		
+	</select>
+	
+	<select id="leaveSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from leave_application d
+ 		
+ 		where d.request_usr = #{userId} and d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.complet = 'N'
+		</if>
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveSelectDeleted" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from leave_application d
+ 		
+ 		where d.request_usr = #{userId} and d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkSelectDeleted" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from over_work d
+ 		
+ 		where d.request_usr = #{userId} and d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveSelectDirector" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from leave_application d
+ 		
+ 		where d.kind_dept = 'A' and d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.complet = 'N'
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveSelectDirectorDeleted" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from leave_application d
+ 		
+ 		where d.kind_dept = 'A' and d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+	
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkSelectDirectorDeleted" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from over_work d
+ 		
+ 		where d.kind_dept = 'A' and d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+	
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveSelectFactory" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from leave_application d
+ 		
+ 		where d.kind_dept = 'B' and d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.complet = 'N'
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveSelectFactoryDeleted" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from leave_application d
+ 		
+ 		where d.kind_dept = 'B' and d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkSelectFactoryDeleted" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from over_work d
+ 		
+ 		where d.kind_dept = 'B' and d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	
+	<select id="leaveSelectManager" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from leave_application d
+ 		
+ 		where d.request_dept = #{deptCode} and d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.complet = 'N'
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveSelectManagerDeleted" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from leave_application d
+ 		
+ 		where d.request_dept = #{deptCode} and d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+	
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkSelectManagerDeleted" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from over_work d
+ 		
+ 		where d.request_dept = #{deptCode} and d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+	
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveSelectCEO" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from leave_application d
+ 		
+ 		where d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.complet = 'N'
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveSelectComplet" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from leave_application d
+ 		
+ 		where d.deleted = 'N' and d.complet = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkSelectComplet" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from over_work d
+ 		
+ 		where d.deleted = 'N' and d.complet = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveSelectCEODelete" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from leave_application d
+ 		
+ 		where d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+	
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkSelectCEODelete" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from over_work d
+ 		
+ 		where d.deleted = 'Y'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+	
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="leaveCountHour" parameterType="String" resultType="int">
+		select hour_count from user_leave_application where user_id = #{usrId}
+		
+	</select>
+	
+	<select id="leaveCountHourReal" parameterType="String" resultType="int">
+		select hour_count from user where id = #{usrId}
+		
+	</select>
+	
+	<insert id="insertLeaveApplication" parameterType="com.yuhannci.erp.model.db.LeaveApplication" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+	
+		insert into leave_application (title,
+		                         request_reason, 
+		                         reg_date, 
+		                         request_dept, 
+		                         request_usr, 
+		                         request_strdate, 
+		                         request_enddate,
+		                         request_date,
+		                         request_hour, 
+		                         kind, 
+		                         kind_dept,
+		                         conform_stage, 
+		                         sign_r)
+				values
+				
+				(#{title},
+				 #{requestReason}, 
+				 now(), 
+				 #{requestDept}, 
+				 #{requestUsr}, 
+				 #{requestStrdate}, 
+				 #{requestEnddate}, 
+				 #{requestDate},
+				 #{requestHour}, 
+				 #{kind}, 
+				 #{kindDept},
+				 #{conformStage},  
+				 #{signR})
+			
+	</insert>
+	
+	<insert id="insertLeaveApplicationM" parameterType="com.yuhannci.erp.model.db.LeaveApplication" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+	
+		insert into leave_application (title,
+		                         request_reason, 
+		                         reg_date, 
+		                         request_dept, 
+		                         request_usr, 
+		                         request_strdate, 
+		                         request_enddate,
+		                         request_date,
+		                         request_hour, 
+		                         kind, 
+		                         kind_dept,
+		                         conform_stage, 
+		                         sign_r,
+		                         sign_m,
+		                         m_date)
+				values
+				
+				(#{title},
+				 #{requestReason}, 
+				 now(), 
+				 #{requestDept}, 
+				 #{requestUsr}, 
+				 #{requestStrdate}, 
+				 #{requestEnddate}, 
+				 #{requestDate},
+				 #{requestHour}, 
+				 #{kind}, 
+				 #{kindDept},
+				 #{conformStage},  
+				 #{signR},
+				 #{signM},
+				 now())
+			
+	</insert>
+	
+	<insert id="insertLeaveApplicationJ" parameterType="com.yuhannci.erp.model.db.LeaveApplication" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+	
+		insert into leave_application (title,
+		                         request_reason, 
+		                         reg_date, 
+		                         request_dept, 
+		                         request_usr, 
+		                         request_strdate, 
+		                         request_enddate,
+		                         request_date,
+		                         request_hour, 
+		                         kind, 
+		                         kind_dept,
+		                         conform_stage, 
+		                         sign_r,
+		                         sign_m,
+		                         m_date,
+		                         sign_j,
+		                         j_date,
+		                         preId,
+		                         changed)
+				values
+				
+				(#{title},
+				 #{requestReason}, 
+				 now(), 
+				 #{requestDept}, 
+				 #{requestUsr}, 
+				 #{requestStrdate}, 
+				 #{requestEnddate}, 
+				 #{requestDate},
+				 #{requestHour}, 
+				 #{kind}, 
+				 #{kindDept},
+				 #{conformStage},  
+				 #{signR},
+				 #{signM},
+				 now(),
+				 #{signJ},
+				 now(),
+				 #{preId},
+				 #{changed})
+			
+	</insert>
+	
+	<insert id="insertLeaveApplicationC" parameterType="com.yuhannci.erp.model.db.LeaveApplication" >
+	
+		insert into leave_application (title,
+		                         request_reason, 
+		                         reg_date, 
+		                         request_dept, 
+		                         request_usr, 
+		                         request_strdate, 
+		                         request_enddate,
+		                         request_date,
+		                         request_hour, 
+		                         kind, 
+		                         kind_dept,
+		                         conform_stage, 
+		                         sign_r,
+		                         sign_m,
+		                         m_date,
+		                         sign_j,
+		                         j_date,
+		                         sign_c,
+		                         c_date,
+		                         complet)
+				values
+				
+				(#{title},
+				 #{requestReason}, 
+				 now(), 
+				 #{requestDept}, 
+				 #{requestUsr}, 
+				 #{requestStrdate}, 
+				 #{requestEnddate}, 
+				 #{requestDate},
+				 #{requestHour}, 
+				 #{kind}, 
+				 #{kindDept},
+				 #{conformStage},  
+				 #{signR},
+				 #{signM},
+				 now(),
+				 #{signJ},
+				 now(),
+				 #{signC},
+				 now(),
+				 'Y')
+			
+	</insert>
+	
+	<select id="detailLeaveOne" parameterType="Long" resultType="com.yuhannci.erp.model.db.LeaveApplication">
+		
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name,
+ 			(select dept_name from dept_data where id = request_dept) as deptName,
+			(select position from user where id = request_usr) as position
+ 		from leave_application d
+ 		
+ 		where d.id = #{id}
+	
+	</select>
+	
+	<select id="leaveRequestUsrIdSelect" parameterType="Long" resultType="String">
+		select request_usr from leave_application where id = #{id}
+	</select>
+	
+	<select id="leaveKindSelect" parameterType="Long" resultType="String">
+		select kind from leave_application where id = #{id}
+	</select>
+	
+	<select id="leaveDateSelect" parameterType="Long" resultType="int">
+		select request_date from leave_application where id = #{id}
+	</select>
+	
+	<select id="leaveHourSelect" parameterType="Long" resultType="int">
+		select request_hour from leave_application where id = #{id}
+	</select>
+	
+	<select id="usrVacationHour" parameterType="String" resultType="int">
+		select hour_count from user_leave_application where user_id = #{usrId}
+	</select>
+	
+	<select id="usrVacationHourReal" parameterType="String" resultType="int">
+		select hour_count from user where id = #{usrId}
+	</select>
+	
+	<update id="setVacationusr" parameterType="HashMap">
+	
+		update user_leave_application 
+		
+		set
+			hour_count = #{result}
+		
+		where
+			user_id = #{usrId}
+	
+	</update>
+	
+	<update id="setVacationusrReal" parameterType="HashMap">
+	
+		update user 
+		
+		set
+			hour_count = #{result}
+		
+		where
+			id = #{usrId}
+	
+	</update>
+	
+	<select id="overworkSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from over_work d
+ 		
+ 		where d.request_usr = #{userId} and d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.complet = 'N'
+		</if>
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkSelectCEO" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from over_work d
+ 		
+ 		where d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.complet = 'N'
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkSelectManager" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from over_work d
+ 		
+ 		where d.request_dept = #{deptCode} and d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.complet = 'N'
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkSelectFactory" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from over_work d
+ 		
+ 		where d.kind_dept = 'B' and d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.complet = 'N'
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	<select id="overworkSelectDirector" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Overwork">
+	
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name
+ 		from over_work d
+ 		
+ 		where d.kind_dept = 'A' and d.deleted = 'N'
+ 		
+ 		<if test='title != null and title != "" and title != " "'>
+			 and d.title like concat('%', #{title}, '%')
+		</if>
+ 		
+ 		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.request_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.request_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.request_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		<if test='kind != null and kind != "" and kind != " "'>
+			 and d.complet = 'N'
+		</if>
+		
+		<if test='requestId != null and requestId != "" and requestId != " "'>
+			 and d.request_usr = #{requestId}
+		</if>
+		
+		
+ 		order by d.reg_date DESC
+	
+	</select>
+	
+	
+	<insert id="insertoverworkA" parameterType="com.yuhannci.erp.model.db.Overwork" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+	
+		insert into over_work (title,
+		                         request_reason, 
+		                         request_dept, 
+		                         reg_date, 
+		                         request_usr, 
+		                         request_date,
+		                         request_min,
+		                         request_strtime, 
+		                         request_endtime,
+		                         kind, 
+		                         kind_dept,
+		                         conform_stage, 
+		                         sign_r)
+				values
+				
+				(#{title},
+				 #{requestReason},
+				 #{requestDept},  
+				 now(), 
+				 #{requestUsr}, 
+				 #{requestDate}, 
+				 #{requestMin}, 
+				 #{requestStrtime}, 
+				 #{requestEndtime},
+				 #{kind}, 
+				 #{kindDept}, 
+				 #{conformStage},
+				 #{signR})
+			
+	</insert>
+	
+	<insert id="insertoverworkAM" parameterType="com.yuhannci.erp.model.db.Overwork" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+	
+		insert into over_work (title,
+		                         request_reason, 
+		                         request_dept, 
+		                         reg_date, 
+		                         request_usr, 
+		                         request_date,
+		                         request_min,
+		                         request_strtime, 
+		                         request_endtime,
+		                         kind, 
+		                         kind_dept,
+		                         conform_stage, 
+		                         sign_r,
+		                         sign_m,
+		                         m_date)
+				values
+				
+				(#{title},
+				 #{requestReason},
+				 #{requestDept},  
+				 now(), 
+				 #{requestUsr}, 
+				 #{requestDate}, 
+				 #{requestMin}, 
+				 #{requestStrtime}, 
+				 #{requestEndtime},
+				 #{kind}, 
+				 #{kindDept}, 
+				 #{conformStage},
+				 #{signR},
+				 #{signM},
+				 now())
+			
+	</insert>
+	
+	<insert id="insertoverworkAJ" parameterType="com.yuhannci.erp.model.db.Overwork" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+	
+		insert into over_work (title,
+		                         request_reason, 
+		                         request_dept, 
+		                         reg_date, 
+		                         request_usr, 
+		                         request_date,
+		                         request_min,
+		                         request_strtime, 
+		                         request_endtime,
+		                         kind, 
+		                         kind_dept,
+		                         conform_stage, 
+		                         sign_r,
+		                         sign_m,
+		                         m_date,
+		                         sign_j,
+		                         j_date)
+				values
+				
+				(#{title},
+				 #{requestReason},
+				 #{requestDept},  
+				 now(), 
+				 #{requestUsr}, 
+				 #{requestDate}, 
+				 #{requestMin}, 
+				 #{requestStrtime}, 
+				 #{requestEndtime},
+				 #{kind}, 
+				 #{kindDept}, 
+				 #{conformStage},
+				 #{signR},
+				 #{signM},
+				 now(),
+				 #{signJ},
+				 now())
+			
+	</insert>
+	
+	<insert id="insertoverworkAC" parameterType="com.yuhannci.erp.model.db.Overwork" >
+	
+		insert into over_work (title,
+		                         request_reason, 
+		                         request_dept, 
+		                         reg_date, 
+		                         request_usr, 
+		                         request_date,
+		                         request_min,
+		                         request_strtime, 
+		                         request_endtime,
+		                         kind, 
+		                         kind_dept,
+		                         conform_stage, 
+		                         sign_r,
+		                         sign_m,
+		                         m_date,
+		                         sign_j,
+		                         j_date,
+		                         sign_c,
+		                         c_date,
+		                         complet)
+				values
+				
+				(#{title},
+				 #{requestReason},
+				 #{requestDept},  
+				 now(), 
+				 #{requestUsr}, 
+				 #{requestDate}, 
+				 #{requestMin}, 
+				 #{requestStrtime}, 
+				 #{requestEndtime},
+				 #{kind}, 
+				 #{kindDept}, 
+				 #{conformStage},
+				 #{signR},
+				 #{signM},
+				 now(),
+				 #{signJ},
+				 now(),
+				 #{signC},
+				 now(),
+				 'Y')
+			
+	</insert>
+	
+	<select id="detailoverworkOne" parameterType="Long" resultType="com.yuhannci.erp.model.db.Overwork">
+		
+		select d.*,
+ 			FN_GetUserName(d.request_usr) as usr_name,
+ 			(select dept_name from dept_data where id = request_dept) as deptName,
+			(select position from user where id = request_usr) as position
+ 		from over_work d
+ 		
+ 		where d.id = #{id}
+	
+	</select>
+	
+	<select id="getUsrAllDatafromeditUsrleave" resultType="com.yuhannci.erp.model.db.UserData">
+		
+		select * from user where is_out = 'N';
+	
+	</select>
+	
+	<update id="roundrobinMoveToM" parameterType="String">
+	
+		update round_robin set
+			round_kind = 'M'
+		where
+			roundNo = #{roundNo}
+	
+	</update>
+	
+	<select id="usrNameForInsNoticeMessage" resultType="String">
+		
+		select name from user where id = #{usrId}
+	
+	</select>
+	
+	<select id="usrENGNameForInsNoticeMessage" resultType="String">
+		
+		select eng_name from user where id = #{usrId}
+	
+	</select>
+	
+	<select id="leaveKindDetpfromNoticeMessage" parameterType="Long" resultType="String">
+		
+		select kind_dept from leave_application where id = #{id}
+	
+	</select>
+	
+	<select id="leaveRequestUsrfromNoticeMessage" parameterType="Long" resultType="String">
+		
+		select request_usr from leave_application where id = #{id}
+	
+	</select>
+	
+	<select id="overWorkRequestUsrfromNoticeMessage" parameterType="Long" resultType="String">
+		
+		select request_usr from over_work where id = #{id}
+	
+	</select>
+	
+	<select id="overWorkDetpfromNoticeMessage" parameterType="Long" resultType="String">
+		
+		select kind_dept from over_work where id = #{id}
+	
+	</select>
+	
+	<select id="sumPriceFromRoundNumNoticeMessage" parameterType="String" resultType="int">
+		select SUM(quantity*price) from round_robin where roundNo = #{roundNo}
+		
+	</select>
+	
+	<select id="orderNoFullNameFromNoticeMessage" parameterType="Long" resultType="String">
+		select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = #{id}
+		
+	</select>
+	
+	<select id="orderIdFromNoticeMessageFromRound" parameterType="String" resultType="Long">
+		select job_order_id from round_robin where roundNo = #{roundNo} limit 1; 
+		
+	</select>
+	
+	<select id="completYNfromLeaveConfromCEO" parameterType="Long" resultType="String">
+		select complet from leave_application where id = #{id}; 
+		
+	</select>
+	
+	<select id="isUpdatePossible" parameterType="Long" resultType="int">
+		select count(*) from leave_application where request_strdate >= date_add(curdate( ), interval +2 day) and id = #{id};
+		
+	</select>
+	
+	<select id="leaveGetStage" parameterType="Long" resultType="String">
+		select complet from leave_application where id = #{id};
+		
+	</select>
+	
+	<select id="leaveGetRequestDate" parameterType="Long" resultType="int">
+		select request_date from leave_application where id = #{id};
+		
+	</select>
+	
+	<select id="leaveGetRequestHour" parameterType="Long" resultType="int">
+		select request_hour from leave_application where id = #{id};
+		
+	</select>
+	
+	<select id="leaveGettitle" parameterType="Long" resultType="String">
+		select title from leave_application where id = #{id};
+		
+	</select>
+	
+	<update id="addUserVacation" parameterType="HashMap">
+	
+		update user 
+		set
+			hour_count = (hour_count + #{leaveDate})
+		where
+			id = #{usrId}
+	
+	</update>
+	
+	<update id="vacationDeletedAndChange" parameterType="Long">
+	
+		update leave_application 
+		set
+			deleted = 'Y',
+			delete_reason = '휴가 변경 삭제'
+			
+		where
+			id = #{id}
+	
+	</update>
+	
+
+	
+	
+
+</mapper>

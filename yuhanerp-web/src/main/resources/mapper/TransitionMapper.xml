@@ -1,0 +1,1087 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.TransitionMapper">
+
+	<select id="serchuserDeptCode" parameterType="String" resultType="String">
+		select dept_code from user where id = #{id}
+	
+	</select>
+	
+	<select id="serachdata" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_purchase d 
+
+		where complet ='N' and kind_purchase='P' and d.receive_dept = #{deptCode}
+		
+	
+
+		group by d.job_order_id
+	
+	</select>
+	
+	
+	<select id="serachdataList" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_purchase d 
+
+		where complet ='Y' and kind_purchase='P' and d.receive_dept = #{deptCode}
+		
+	
+
+		group by d.job_order_id
+	
+	</select>
+	
+	<select id="serachdataPass" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_purchase d 
+
+		where d.complet ='N' and d.kind_purchase='P' and d.pass_usr = #{usrId}
+		
+	
+
+		group by d.job_order_id, d.receive_dept
+	
+	</select>
+	
+	<select id="serachdata3" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_purchase d 
+
+		where complet ='N' and kind_purchase='S' and d.receive_dept = #{deptCode}
+		
+
+
+		group by d.job_order_id 
+	
+	</select>
+	
+	<select id="serachdataList3" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_purchase d 
+
+		where complet ='Y' and kind_purchase='S' and d.receive_dept = #{deptCode}
+		
+
+
+		group by d.job_order_id 
+	
+	</select>
+	
+	<select id="serachdataPass3" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_purchase d 
+
+		where complet ='N' and kind_purchase='S' and d.pass_usr = #{usrId}
+		
+
+
+		group by d.job_order_id, d.receive_dept 
+	
+	</select>
+	
+	<select id="serachdata2" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionProcessing">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_processing d 
+
+		where complet ='N' and d.receive_dept = #{deptCode}
+		
+		
+
+		group by d.job_order_id 
+	
+	</select>
+	
+	<select id="serachdataList2" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionProcessing">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_processing d 
+
+		where complet ='Y' and d.receive_dept = #{deptCode}
+		
+		
+
+		group by d.job_order_id 
+	
+	</select>
+	
+	<select id="serachdataPass2" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionProcessing">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_processing d 
+
+		where complet ='N' and d.pass_usr = #{usrId}
+		
+		
+
+		group by d.job_order_id, d.receive_dept
+	
+	</select>
+		
+	
+	<select id="serachdataAdmin" resultType="com.yuhannci.erp.model.TransitionAdmin">
+	
+		select d.receive_dept,
+
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_purchase d 
+
+		where complet ='N' and kind_purchase='P'
+
+		group by d.receive_dept
+		
+	</select>
+	
+	<select id="serachdataAdminList" resultType="com.yuhannci.erp.model.TransitionAdmin">
+	
+		select d.receive_dept,
+
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_purchase d 
+
+		where complet ='Y' and kind_purchase='P'
+
+		group by d.receive_dept
+		
+	</select>
+	
+	<select id="serachdataAdmin2" resultType="com.yuhannci.erp.model.TransitionAdmin">
+	
+		select d.receive_dept,
+
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_purchase d 
+
+		where complet ='N' and kind_purchase='S'
+
+		group by d.receive_dept
+		
+	</select>
+	
+	<select id="serachdataAdminList2" resultType="com.yuhannci.erp.model.TransitionAdmin">
+	
+		select d.receive_dept,
+
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		count(*) as count
+
+		from transition_purchase d 
+
+		where complet ='Y' and kind_purchase='S'
+
+		group by d.receive_dept
+		
+	</select>
+	
+	
+	
+	<select id="popserachdataPurchase" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		p.description, p.model_no
+
+		from transition_purchase d 
+		
+		inner join job_purchase p
+		
+		on d.job_purchase_id = p.id
+		
+		where complet ='N' and kind_purchase='P' and d.job_order_id = #{jobOrderId} and d.receive_dept = #{receiveDept}
+		
+
+		
+	
+	</select>
+	
+	
+	<select id="popserachdataPurchaseList" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		(select name from user where id = d.receiver_usr) as receiveUsrName,
+		
+		p.description, p.model_no, p.warehousing_quantity
+
+		from transition_purchase d 
+		
+		inner join job_purchase p
+		
+		on d.job_purchase_id = p.id
+		
+		where complet ='Y' and kind_purchase='P' and d.job_order_id = #{jobOrderId} and d.receive_dept = #{receiveDept}
+		
+
+		
+	
+	</select>
+	
+	<select id="popserachdataPurchasePass" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		p.description, p.model_no
+
+		from transition_purchase d 
+		
+		inner join job_purchase p
+		
+		on d.job_purchase_id = p.id
+		
+		where complet ='N' and kind_purchase='P' and d.job_order_id = #{jobOrderId} and d.pass_usr = #{passUsr}
+		
+
+		
+	
+	</select>
+	
+	
+	
+	<select id="popserachdataStock" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+			
+		p.description, p.model_no
+
+		from transition_purchase d 
+		
+        inner join stock p
+		
+		on d.stockId = p.id
+		
+		where complet ='N' and kind_purchase='S' and d.job_order_id = #{jobOrderId} and d.receive_dept = #{receiveDept}
+	
+	</select>
+	
+	<select id="popserachdataStockList" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		(select out_quantity from stock_out_histroy where id = d.stock_history_id) as quantity,
+		
+		(select name from user where id = d.receiver_usr) as receiveUsrName,
+		
+		p.description, p.model_no
+
+		from transition_purchase d 
+		
+        inner join stock p
+		
+		on d.stockId = p.id
+		
+		where complet ='Y' and kind_purchase='S' and d.job_order_id = #{jobOrderId} and d.receive_dept = #{receiveDept}
+	
+	</select>
+	
+	<select id="popserachdataStockPass" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+			
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		p.description, p.model_no
+
+		from transition_purchase d 
+		
+        inner join stock p
+		
+		on d.stockId = p.id
+		
+		where complet ='N' and kind_purchase='S' and d.job_order_id = #{jobOrderId} and d.pass_usr = #{passUsr}
+		
+
+		
+	
+	</select>
+	
+	
+	<select id="popserachdataMm" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.TransitionProcessing">
+		
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		(FN_GetDisplayDrawingNo((select order_type from job_design_drawing where id = d.job_design_drawing_id), (select order_no_base from job_design_drawing where id = d.job_design_drawing_id), (select order_no_extra from job_design_drawing where id = d.job_design_drawing_id), (select drawing_no from job_design_drawing where id = d.job_design_drawing_id))) as designDrawingNo,
+			
+		p.description, p.dimension
+
+		from transition_processing d 
+		
+        inner join job_design_drawing p
+		
+		on d.job_design_drawing_id = p.id
+		
+		where complet ='N' and d.job_order_id = #{jobOrderId} and d.receive_dept = #{receiveDept}
+	
+	</select>
+	
+	<select id="popserachdataMmList" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.TransitionProcessing">
+		
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		(select name from user where id = d.receiver_usr) as receiveUsrName,
+		
+		(FN_GetDisplayDrawingNo((select order_type from job_design_drawing where id = d.job_design_drawing_id), (select order_no_base from job_design_drawing where id = d.job_design_drawing_id), (select order_no_extra from job_design_drawing where id = d.job_design_drawing_id), (select drawing_no from job_design_drawing where id = d.job_design_drawing_id))) as designDrawingNo,
+			
+		p.description, p.dimension
+
+		from transition_processing d 
+		
+        inner join job_design_drawing p
+		
+		on d.job_design_drawing_id = p.id
+		
+		where complet ='Y' and d.job_order_id = #{jobOrderId} and d.receive_dept = #{receiveDept}
+	
+	</select>
+	
+	<select id="popserachdataPartListPass" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.TransitionProcessing">
+		
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+			
+		p.description, p.dimension
+
+		from transition_processing d 
+		
+        inner join job_design_drawing p
+		
+		on d.job_design_drawing_id = p.id
+		
+		where complet ='N' and d.job_order_id = #{jobOrderId} and d.pass_usr = #{passUsr}
+	
+	</select>
+	
+	<select id="popserachdataPurchaseAdmin" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		p.description, p.model_no, p.warehousing_quantity
+
+		from transition_purchase d 
+		
+		inner join job_purchase p
+		
+		on d.job_purchase_id = p.id
+		
+		where complet ='N' and kind_purchase='P' and d.receive_dept = #{receiveDept}
+		
+	</select>
+	
+	<select id="popserachdataPurchaseAdminList" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		(select name from user where id = d.receiver_usr) as receiveUsrName,
+		
+		p.description, p.model_no, p.warehousing_quantity
+
+		from transition_purchase d 
+		
+		inner join job_purchase p
+		
+		on d.job_purchase_id = p.id
+		
+		where complet ='Y' and kind_purchase='P' and d.receive_dept = #{receiveDept}
+		
+	</select>
+	
+	
+	<select id="popserachdataStockAdmin" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		(select out_quantity from stock_out_histroy where id = d.stock_history_id) as quantity,
+		
+		p.description, p.model_no
+
+		from transition_purchase d 
+		
+        inner join stock p
+		
+		on d.stockId = p.id
+		
+		where complet ='N' and kind_purchase='S' and d.receive_dept = #{receiveDept}
+	
+	</select>
+	
+	<select id="popserachdataStockAdminList" parameterType="String" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		
+		(select name from user where id = d.pass_usr) as userName,
+		
+		(select dept_name from dept_data where id=d.receive_dept) as deptName,
+		
+		(select out_quantity from stock_out_histroy where id = d.stock_history_id) as quantity,
+		
+		(select name from user where id = d.receiver_usr) as receiveUsrName,
+		
+		p.description, p.model_no
+
+		from transition_purchase d 
+		
+        inner join stock p
+		
+		on d.stockId = p.id
+		
+		where complet ='Y' and kind_purchase='S' and d.receive_dept = #{receiveDept}
+	
+	</select>
+	
+	<update id="updateTration" parameterType="HashMap">
+		update transition_purchase 
+		set
+		receiver_usr = #{receiverUsr},
+		complet = 'Y'
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+	<update id="updateTrationProccesing" parameterType="HashMap">
+		update transition_processing 
+		set
+		receiver_usr = #{receiverUsr},
+		complet = 'Y'
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+	<update id="updateJobPurchase" parameterType="HashMap">
+		update job_purchase 
+		set
+		receiver_usr = #{receiverUsr}
+		
+		where id = #{jobPurchaseId}
+		
+	
+	</update>
+	
+	<update id="updateStockOut" parameterType="HashMap">
+		update stock_out_histroy 
+		set
+		receiver_usr = #{receiverUsr}
+		
+		where id = #{stockHistoryId}
+		
+	
+	</update>
+	
+	<update id="updateJobPurchaseAdmin" parameterType="Long">
+		update job_purchase 
+		set
+		receive_dept = null,
+		stage = 'F'
+		where id = #{jobPurchaseId}
+		
+	
+	</update>
+	
+	<delete id="deleteTrantion" parameterType="Long">
+		delete from transition_purchase
+		
+		where id = #{id}
+
+	</delete>
+	
+	<delete id="deleteTrantionPart" parameterType="Long">
+		delete from transition_processing
+		
+		where id = #{id}
+
+	</delete>
+	
+	<select id="selectOutqty" parameterType="Long" resultType="int">
+	
+		select out_quantity
+		from stock_out_histroy
+		where id = #{stockHistoryId}
+	
+	</select>
+	
+	<select id="stock" parameterType="Long" resultType="int">
+	
+		select quantity
+		from stock
+		where id = #{stockId}
+	
+	</select>
+	
+	<update id="updateStock" parameterType="HashMap">
+		update stock 
+		set
+		ab_quantity = (ab_quantity + #{outQty}),
+		out_quantity = (out_quantity - #{outQty}),
+		final_date = now()
+		
+		where id = #{stockId}
+		
+	
+	</update>
+	
+	
+	<update id="updateOutStock" parameterType="HashMap">
+		update stock 
+		set
+		out_quantity = (out_quantity - #{outQty}),
+		final_date = now()
+		
+		where id = #{stockId}
+		
+	
+	</update>
+	
+	<select id="abstockCheck" parameterType="Long" resultType="String">
+	
+		select abstock
+		from transition_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<delete id="stockHistoryDelete" parameterType="Long">
+		delete from stock_out_histroy
+		
+		where id = #{stockHistoryId}
+
+	</delete>
+	
+	<select id="deleteCheck" parameterType="Long" resultType="String">
+		select complet
+		from transition_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="deleteCheckPart" parameterType="Long" resultType="String">
+		select complet
+		from transition_processing
+		where id = #{id}
+	
+	</select>
+	
+	<select id="rePassPurcahse" parameterType="Long" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+			p.description, p.model_no
+
+	from transition_purchase d 
+	inner join job_purchase p
+	on d.job_purchase_id = p.id
+	where d.id = #{id}
+	
+	</select>
+	
+	<select id="rePassPurcahseStock" parameterType="Long" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select d.*,
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+			p.description, p.model_no
+
+	from transition_purchase d 
+	inner join stock p
+	on d.stockId = p.id
+	where d.id = #{id}
+	
+	</select>
+	
+	<select id="rePassPartList" parameterType="Long" resultType="com.yuhannci.erp.model.db.TransitionProcessing">
+		select d.*,
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+			(FN_GetDisplayDrawingNo((select order_type from job_design_drawing where id = d.job_design_drawing_id), (select order_no_base from job_design_drawing where id = d.job_design_drawing_id), (select order_no_extra from job_design_drawing where id = d.job_design_drawing_id), (select drawing_no from job_design_drawing where id = d.job_design_drawing_id))) as designDrawingNo,
+			p.description, p.dimension
+
+	from transition_processing d 
+	inner join job_design_drawing p
+	on d.job_design_drawing_id = p.id
+	where d.id = #{id}
+	
+	</select>
+	
+	<update id="rePassPurchaseDo" parameterType="HashMap">
+		update transition_purchase 
+		set
+		kind_repass = #{kind},
+		reYN = 'Y',
+		rquantity = (rquantity + #{rquantity}),
+		reReason = #{outReason}
+		
+		
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+	<update id="rePassPurchaseDoPart" parameterType="HashMap">
+		update transition_processing 
+		set
+		kind_repass = #{kind},
+		reYN = 'Y',
+		rquantity = (rquantity + #{rquantity}),
+		reReason = #{outReason}
+		
+		
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+	<update id="rePassETCDo" parameterType="HashMap">
+		update transition_purchase 
+		set
+		kind_repass = #{kind},
+		reYN = 'Y',
+		rquantity = (rquantity + #{rquantity})
+		
+		
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+	<update id="rePassETCDoPart" parameterType="HashMap">
+		update transition_processing 
+		set
+		kind_repass = #{kind},
+		reYN = 'Y',
+		rquantity = (rquantity + #{rquantity})
+		
+		
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+	<select id="idSerachforPurchaseTratison" parameterType="Long" resultType="com.yuhannci.erp.model.db.TransitionPurchase">
+		select *
+		from transition_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="idSerachforPurchaseTratisonPart" parameterType="Long" resultType="com.yuhannci.erp.model.db.TransitionProcessing">
+		select *
+		from transition_processing
+		where id = #{id}
+	
+	</select>
+	
+	<select id="selectDeptAllData" resultType="com.yuhannci.erp.model.db.DeptData">
+		select id, dept_name
+		from dept_data
+	
+	</select>
+	
+	<select id="searchPreIdMapper" parameterType="Long" resultType="Long">
+	
+		select preId
+		from transition_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="searchPreIdMapperPart" parameterType="Long" resultType="Long">
+	
+		select preId
+		from transition_processing
+		where id = #{id}
+	
+	</select>
+	
+	<update id="updatePassReturn" parameterType="Long">
+		update transition_purchase 
+		set
+		kind_repass = null,
+		reYN = 'N',
+		rquantity = 0,
+		reReason = null
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+	<update id="updatePassReturnPart" parameterType="Long">
+		update transition_processing 
+		set
+		kind_repass = null,
+		reYN = 'N',
+		rquantity = 0,
+		reReason = null
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+	<select id="rqtySearch" parameterType="Long" resultType="int">
+	
+		select rquantity
+		from transition_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="rqtySearchPart" parameterType="Long" resultType="int">
+	
+		select rquantity
+		from transition_processing
+		where id = #{id}
+	
+	</select>
+	
+	<select id="qtySearch" parameterType="Long" resultType="int">
+	
+		select quantity
+		from transition_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="qtySearchPart" parameterType="Long" resultType="int">
+	
+		select quantity
+		from transition_processing
+		where id = #{id}
+	
+	</select>
+	
+	<update id="updatePassReturnEL" parameterType="HashMap">
+		update transition_purchase 
+		set
+
+		rquantity = #{qty}
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+	<update id="updatePassReturnELPart" parameterType="HashMap">
+		update transition_processing 
+		set
+
+		rquantity = #{qty}
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+	<select id="kindRepass" parameterType="Long" resultType="String">
+	
+		select kind_repass
+		from transition_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="purchaseIdfromTransition" parameterType="Long" resultType="Long">
+	
+		select job_purchase_id
+		from transition_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="getModel" parameterType="Long" resultType="String">
+	
+		select model_no
+		from job_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="getDes" parameterType="Long" resultType="String">
+	
+		select description
+		from job_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="getMak" parameterType="Long" resultType="String">
+	
+		select maker
+		from job_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="getQtyfromTrasiton" parameterType="Long" resultType="int">
+	
+		select quantity
+		from transition_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="getQtyfromTrasitonProccesing" parameterType="Long" resultType="int">
+	
+		select quantity
+		from transition_processing
+		where id = #{id}
+	
+	</select>
+	
+	<select id="getReasonfromTransition" parameterType="Long" resultType="String">
+	
+		select reReason
+		from transition_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<select id="getReasonfromTransitionProccesing" parameterType="Long" resultType="String">
+	
+		select reReason
+		from transition_processing
+		where id = #{id}
+	
+	</select>
+	
+	<select id="getPassUfromTransition" parameterType="Long" resultType="String">
+	
+		select pass_usr
+		from transition_purchase
+		where id = #{id}
+	
+	</select>
+	
+	<insert id="insertProccessingTrantion" parameterType="com.yuhannci.erp.model.db.TransitionProcessing">
+	
+		insert into transition_processing 
+		
+		(preId ,job_order_id, kind_repass, job_design_drawing_id, pass_usr, receive_dept, quantity)
+		
+		values
+		(#{preId} ,#{jobOrderId}, #{kindRepass}, #{jobDesignDrawingId}, #{passUsr}, #{receiveDept}, #{quantity})	
+	</insert>
+	
+	<insert id="insPTfromQcComplet" parameterType="com.yuhannci.erp.model.db.TransitionProcessing">
+	
+		insert into transition_processing 
+		
+		(preId ,job_order_id, kind_repass, job_design_drawing_id, pass_usr, receive_dept, quantity, receiver_usr, complet)
+		
+		values
+		(#{preId} ,#{jobOrderId}, #{kindRepass}, #{jobDesignDrawingId}, #{passUsr}, #{receiveDept}, #{quantity}, #{receiverUsr}, #{complet})	
+	</insert>
+	
+	<select id="getDesForDrawing" parameterType="Long" resultType="String">
+	
+		select description
+		from job_design_drawing
+		where id = #{id}
+	
+	</select>
+	
+	<select id="getDemForDrawing" parameterType="Long" resultType="String">
+	
+		select dimension
+		from job_design_drawing
+		where id = #{id}
+	
+	</select>
+	
+	<select id="getPassUsrFromTrasitionProccesing" parameterType="Long" resultType="String">
+	
+		select pass_usr
+		from transition_processing
+		where id = #{id}
+	
+	</select>
+	
+	<select id="getJobDesign" parameterType="Long" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+	
+		select *
+		from job_design_drawing
+		where id = #{id}
+	
+	</select>
+	
+	<update id="setDesignPassStayY" parameterType="Long">
+		update job_design_drawing 
+		set
+
+		passStay = 'Y'
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+	<update id="setDesignPassStayN" parameterType="Long">
+		update job_design_drawing 
+		set
+
+		passStay = 'N'
+		
+		where id = #{id}
+		
+	
+	</update>
+	
+
+
+</mapper>

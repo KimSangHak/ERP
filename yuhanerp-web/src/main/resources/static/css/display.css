@@ -1,0 +1,39 @@
+@charset "utf-8";
+
+@import url(http://fonts.googleapis.com/earlyaccess/notosanskr.css);
+@import url(https://fonts.googleapis.com/css?family=Montserrat);
+
+/* Default */
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,sub,sup,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent;margin:0;padding:0;}
+body{line-height:1;font-size:37px;font-family:'Noto Sans KR', 'Malgun Gothic',verdana, sans-serif;font-weight:400;color:#454545;-webkit-text-size-adjust:none;}
+ol,ul{list-style:none;}
+section,article,aside,hgroup,header,footer,nav,figure,figcaption,summary{display:block;}
+address,caption,cite,code,dfn,em,th,var,i,strong{font-style:normal;font-weight:300;}
+table{border-collapse:collapse;border-spacing:0;}
+caption,hr,legend,i{display:none;}
+textarea{resize:none;}
+a{text-decoration:none;color:#666;}
+a:hover, a:focus{text-decoration:none;}
+a, button{-webkit-transition:all 0.5s;-moz-transition:all 0.5s;transition:all 0.5s;}
+label{cursor:pointer;}
+input[type=password],input[type=text],input[type=search],input[type=submit],input[type=date],input[type=file],input[type=number],textarea,select{display:inline-block;background-color:#fff;font-family:'Noto Sans KR', 'Malgun Gothic',verdana; font-size:14px;line-height:18px;color:#666;font-weight:300;vertical-align:middle;outline:0;box-sizing:border-box;}
+img,iframe,a{vertical-align:middle;}
+
+/* Layout ***********************************************************************************************************************************************************************************************************/
+body {color:#666666; font-family:'Noto Sans KR', 'Malgun Gothic',verdana; font-weight:400;}
+#container {zoom:1; position:relative; width:100%; margin:0 auto;}
+#container:after {content:" "; display:block; clear:both;}
+
+.display h1 {width:100%; height:110px; color:#fff; font-size:60px; line-height:100px; text-align:center; background:linear-gradient(to bottom, #1750a3, #0a397c); -webkit-background:linear-gradient( to bottom, #1750a3, #0a397c);}
+.conTable table {width:100%;}
+.conTable th {height:120px; font-size:40px; font-weight:500; text-align:center; line-height:50px; color:#334969; vertical-align:middle; background:linear-gradient(to bottom, #d2ddeb, #bcc7d6); -webkit-background:linear-gradient( to bottom, #d2ddeb, #bcc7d6); border-right:1px solid #a2b2c8; border-bottom:1px solid #a2b2c8;}
+.conTable td {height:70px; padding:15px; text-align:center; font-weight:500; vertical-align:middle; border-right:1px solid #c0c0c0; border-bottom:1px solid #c0c0c0;}
+.conTable td span {color:#ec211c;}
+.conTable td p {margin-bottom:15px;}
+.conTable td p:last-child {margin-bottom:0;}
+#tdLeft {text-align:left; padding:40px 0 40px 100px;}
+.gArea {width:100%; height:27px; background:#c0c0c0;}
+.gArea .red {display:inline-block; background:#ec211c; height:27px; float:left; text-indent:-9999px;}
+.gArea .green {display:inline-block; background:#35a65f; height:27px; float:left; text-indent:-9999px;}
+.gArea .yellow {display:inline-block; background:#edb51d; height:27px; float:left; text-indent:-9999px;}
+.gArea .blue {display:inline-block; background:#1c88db; height:27px; float:left; text-indent:-9999px;}

@@ -1,0 +1,279 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.AdminMapper">
+	
+	<select id="selectAdminUser" resultType="com.yuhannci.erp.model.db.AdminUser">
+	
+		select 
+			(select dept_name from dept_data where id=user.dept_code) as dept_name,
+			id, name, position, hand_phone
+		from user
+		where is_out = 'N';
+		
+	</select>
+	
+	<select id="AllselectAdminUser" resultType="com.yuhannci.erp.model.db.User">
+	
+		select *,
+			(select dept_name from dept_data where id=user.dept_code) as dept_name
+		from user
+		where id = #{id};
+		
+	</select>
+
+	<select id="selectAllMenu" resultType="com.yuhannci.erp.model.db.MenuData">
+	
+		<!--  select * from menu_data where visible='Y'; -->
+		  select * from menu_data where low_code!='00' AND list_code!='00' AND visible='Y'; 
+
+	</select>
+	
+	<select id="selectMenuPk" parameterType="String" resultType="com.yuhannci.erp.model.MenuDataPK">
+	
+		select high_code, low_code, list_code from menu_data where title = #{title};
+
+	</select>
+	
+	<select id="selectAllMenuPk" parameterType="String" resultType="com.yuhannci.erp.model.MenuDataPK">
+	
+		select high_code, low_code, list_code from menu_data;
+
+	</select>
+	
+	<insert id="insertUserMapping" parameterType="HashMap">
+	
+		insert into user_menu_mapping (user_id, high_code, low_code, list_code, visible, updateYN)
+		values (#{userId}, #{highCode}, #{lowCode}, #{listCode}, 'Y', 'Y');
+
+	</insert>
+	
+	<insert id="insertAllUserMapping" parameterType="com.yuhannci.erp.model.AllMenuDatains">
+	
+		insert into user_menu_mapping (user_id, high_code, low_code, list_code, visible, updateYN)
+		values (#{userId}, #{highCode}, #{lowCode}, #{listCode}, 'N', 'N');
+
+	</insert>
+	
+	<delete id="deleteUserMapping" parameterType="String">
+		delete from user_menu_mapping where user_id = #{userId};
+	</delete>
+	
+	<update id="updateUser" parameterType="com.yuhannci.erp.model.UserUpdate">
+		update user
+		set 
+		name = #{name},
+		
+		<if test='password != null and password != "" and password != " "'>
+				password = SHA1(#{password}),
+		</if>
+		
+		eng_name = #{engName},
+		dept_code = #{deptCode},
+		position = #{position},
+		email = #{email},
+		kakao_Id = #{kakaoId},
+		hand_phone = #{handPhone},
+		in_phone = #{inPhone},
+		home_address = #{homeAddress},
+		is_admin = #{isAdmin},
+		is_qc = #{isQc},
+		is_pgm = #{isPgm},
+		is_robot = #{isRobot},
+		passport_expire_date = #{passportExpireDate}
+		where id = #{id}
+		
+	</update>
+	
+	<update id="updateUserForGeneral" parameterType="com.yuhannci.erp.model.UserUpdate">
+		update user
+		set 
+		name = #{name},
+		eng_name = #{engName},
+		dept_code = #{deptCode},
+		position = #{position},
+		email = #{email},
+		kakao_Id = #{kakaoId},
+		hand_phone = #{handPhone},
+		in_phone = #{inPhone},
+		home_address = #{homeAddress},
+		passport_expire_date = #{passportExpireDate}
+		where id = #{id}
+		
+	</update>
+	
+	<select id="selectAllDeptName" resultType="com.yuhannci.erp.model.NameDept">
+
+		select dept_name from dept_data;
+		
+	</select>
+	
+	<select id="selectAllPositionName" resultType="com.yuhannci.erp.model.PositionId">
+
+		select id from position_data;
+		
+	</select>
+	
+	<select id="selectOneDeptCode" resultType="String" parameterType="String">
+
+		select id from dept_data where dept_name = #{dept_name};
+		
+	</select>
+	
+	<select id="selectViewIndexCount" resultType="int">
+
+		select Max(view_index) from user;
+		
+	</select>
+	
+	<insert id="insertUser" parameterType="com.yuhannci.erp.model.UserInsert">
+	
+		insert into user (id, 
+						  kakao_Id, 
+						  email, 
+						  password, 
+						  name, 
+						  eng_name, 
+						  dept_code, 
+						  position, 
+						  in_phone, 
+						  direct_phone,
+						  hand_phone,
+						  home_phone,
+						  home_address,
+						  join_date,
+						  quit_date,
+						  passport_expire_date,
+						  last_login,
+						  view_index,
+						  is_admin,
+						  is_qc,
+						  is_pgm,
+						  is_robot,
+						  mct_passwd,
+						  is_out)
+		values (#{id}, 
+				#{kakaoId}, 
+				#{email}, 
+				SHA1(#{password}),
+				#{name},
+				#{engName},
+				#{deptCode},
+				#{position},
+				#{inPhone},
+				#{directPhone},
+				#{handPhone},
+				#{homePhone},
+				#{homeAddress},
+				now(),
+				null,
+				#{passportExpireDate},
+				null,
+				#{viewIndex},
+				#{isAdmin},
+				#{isQc},
+				#{isPgm},
+				#{isRobot},
+				#{mctPasswd},
+				'N');
+
+	</insert>
+	
+	<update id="userDelete" parameterType="String">
+		update user
+		set 
+		is_out = 'Y',
+		quit_date = now()
+		where id = #{id}
+		
+	</update>
+	
+	<select id="selectUserMappingTitleVisible" resultType="com.yuhannci.erp.model.MappingTitle" parameterType="String">
+		<![CDATA[
+		select a.title
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code = b.low_code and a.list_code=b.list_code
+			where b.user_id = #{userId} and b.visible = 'Y' and a.low_code <> '00' and a.list_code <> '00';
+			]]>
+	</select>
+	
+	<select id="selectUserMappingTitleUpdate" resultType="com.yuhannci.erp.model.MappingTitle" parameterType="String">
+		<![CDATA[
+		select a.title
+			from menu_data a
+			inner join user_menu_mapping b
+			on a.high_code = b.high_code and a.low_code = b.low_code and a.list_code=b.list_code
+			where b.user_id = #{userId} and b.visible = 'Y' and b.updateYN = 'Y' and a.low_code <> '00' and a.list_code <> '00';
+		]]>
+	</select>
+	
+	<update id="updateUserMapping" parameterType="HashMap">
+		update user_menu_mapping
+		set 
+		visible = 'Y'
+		where user_id = #{userId} and high_code = #{highCode} and low_code = #{lowCode} and list_code = #{listCode}; 
+		
+	</update>
+	
+	<update id="updateUserMappingLow" parameterType="HashMap">
+		update user_menu_mapping
+		set 
+		visible = 'Y'
+		where user_id = #{userId} and high_code = #{highCode} and low_code = #{lowCode} and list_code = '00'; 
+		
+	</update>
+	
+	<update id="updateUserMappingHigh" parameterType="HashMap">
+		update user_menu_mapping
+		set 
+		visible = 'Y'
+		where user_id = #{userId} and high_code = #{highCode} and low_code = '00' and list_code = '00'; 
+		
+	</update>
+	
+	<update id="updateUserMappingUP" parameterType="HashMap">
+		update user_menu_mapping
+		set 
+		visible = 'Y',
+		updateYN = 'Y'
+		where user_id = #{userId} and high_code = #{highCode} and low_code = #{lowCode} and list_code = #{listCode};
+		
+	</update>
+	
+	<update id="updateUserMappingUPLow" parameterType="HashMap">
+		update user_menu_mapping
+		set 
+		visible = 'Y',
+		updateYN = 'Y'
+		where user_id = #{userId} and high_code = #{highCode} and low_code = #{lowCode} and list_code ='00';
+		
+	</update>
+	
+	<update id="updateUserMappingUPHigh" parameterType="HashMap">
+		update user_menu_mapping
+		set 
+		visible = 'Y',
+		updateYN = 'Y'
+		where user_id = #{userId} and high_code = #{highCode} and low_code = '00' and list_code ='00';
+		
+	</update>
+	
+	<update id="updateUserMappingN" parameterType="String">
+		update user_menu_mapping
+		set 
+		visible = 'N',
+		updateYN = 'N'
+		where user_id = #{userId};
+		
+	</update>
+	
+	<select id="insUserMappingAll" parameterType="String">
+		insert into user_menu_mapping
+			select #{id} , high_code, low_code, list_code, 'N', 'N' from menu_data;
+	</select>
+	
+	
+	
+	
+
+</mapper>

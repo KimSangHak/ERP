@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.QcViewDataMapper">
+
+	<!-- 현재는 그냥 select 하고 있으나
+		아래 SubMenu 가 포함된 Top Menu 만 나오도록 수정해야함
+	 -->
+	<select id="selectList" parameterType="HashMap" resultType="com.yuhannci.erp.model.QcViewData">
+		select qc.id,
+				qc.job_drawing_id,
+				dw.order_type,
+				dw.order_no_base,
+				dw.order_no_extra,
+				dw.drawing_no,
+				FN_GetDisplayDrawingNo(dw.order_type, dw.order_no_base, dw.order_no_extra, dw.drawing_no) as drawing_full_no,
+				dw.description,
+				dw.material,
+				dw.thermal,
+				dw.postprocessing,
+				dw.quantity,
+				dw.spare,
+				FN_GetOutSourceName(dw.work_position, dw.outsourcing_partner_id) as out_source_name,
+				qc.work_status,
+				dw.process_finish_date as finish_date,
+				(select install_date from job_order where id=dw.order_id) as install_date,
+				FN_GetTypeName('job_inspect', qc.work_status) as work_status_text
+			from job_inspect as qc
+				join job_design_drawing as dw
+				on qc.job_drawing_id=dw.id
+
+			where is_delivery='N'
+				<if test="orderNoBase != null and orderNoBase != ''"> 
+					and dw.order_no_base = #{orderNoBase}
+				</if>
+				<if test="orderNoExtra != null and orderNoExtra != ''"> 
+					and dw.order_no_extra like concat(#{orderNoExtra}, '%')
+				</if>
+				<if test="drawingNo != null and drawingNo != ''">
+					and dw.drawing_no like concat(#{drawingNo}, '%')
+				</if>
+				<if test="mctDateFrom != null and mctDateFrom != ''">
+					and dw.process_finish_date &gt;= concat(#{mctDateFrom}, ' 00:00:00')
+				</if>
+				<if test="mctDateTo != null and mctDateTo != ''">
+					and dw.process_finish_date &lt;= concat(#{mctDateTo}, ' 23:59:59')
+				</if>
+
+			order by install_date;
+	</select>
+
+	<select id="selectFinishList" parameterType="HashMap" resultType="com.yuhannci.erp.model.QcFinishListData">
+		select qc.id,
+				qc.job_drawing_id,
+				dw.order_type,
+				dw.order_no_base,
+				dw.order_no_extra,
+				dw.drawing_no,
+				FN_GetDisplayDrawingNo(dw.order_type, dw.order_no_base, dw.order_no_extra, dw.drawing_no) as drawing_full_no,
+				dw.description,
+				dw.material,
+				dw.thermal,
+				dw.postprocessing,
+				dw.quantity,
+				dw.spare,
+				FN_GetOutSourceName(dw.work_position, dw.outsourcing_partner_id) as out_source_name,
+				(select FN_GetOutSourceName('O', partner_id) from job_partner_outsourcing_order where request_type='C' AND job_design_drawing_id=qc.job_drawing_id limit 1) as coating_parter_name,
+				DATE_FORMAT(dw.process_finish_date,'%Y-%m-%d') as finish_date,
+				DATE_FORMAT(qc.get_date,'%Y-%m-%d %H:%i') as get_date,
+				qc.get_from_id,
+				FN_GetUserName(qc.get_from_id) as get_from_name,
+				qc.get_to_id,
+				FN_GetUserName(qc.get_to_id) as get_to_name,
+				qc.work_status,
+				FN_GetTypeName('job_inspect', qc.work_status) as work_status_text,
+				DATE_FORMAT(qc.start_date,'%Y-%m-%d %H:%i') as start_date,
+				DATE_FORMAT(qc.stop_date,'%Y-%m-%d %H:%i') as stop_date,
+				DATE_FORMAT(qc.requested_date,'%Y-%m-%d %H:%i') as requested_date,
+				DATE_FORMAT(qc.deliver_date,'%Y-%m-%d %H:%i') as delive_date,
+				qc.result_ok,
+				qc.ok_quantity,
+				qc.fail_quantity,
+				qc.put_from_id,
+				FN_GetUserName(qc.put_from_id) as put_from_name,
+				qc.put_to_id,
+				FN_GetUserName(qc.put_to_id) as put_to_name,
+				qc.hold_reason
+			from job_inspect as qc
+				join job_design_drawing as dw
+				on qc.job_drawing_id=dw.id
+
+			where is_delivery='Y'
+				<if test="orderNoBase != null and orderNoBase != ''"> 
+					and dw.order_no_base = #{orderNoBase}
+				</if>
+				<if test="orderNoExtra != null and orderNoExtra != ''"> 
+					and dw.order_no_extra like concat(#{orderNoExtra}, '%')
+				</if>
+				<if test="drawingNo != null and drawingNo != ''">
+					and dw.drawing_no like concat(#{drawingNo}, '%')
+				</if>
+				<if test="mctDateFrom != null and mctDateFrom != ''">
+					and qc.deliver_date &gt;= concat(#{mctDateFrom}, ' 00:00:00')
+				</if>
+				<if test="mctDateTo != null and mctDateTo != ''">
+					and qc.deliver_date &lt;= concat(#{mctDateTo}, ' 23:59:59')
+				</if>
+			order by qc.deliver_date DESC
+			limit #{start}, #{length};
+	</select>
+
+	<select id="selectCheck" parameterType="HashMap" resultType="com.yuhannci.erp.model.QcFinishListData">
+		select id,
+			get_date,
+			get_from_id,
+			get_to_id,
+			work_status,
+			start_date,
+			stop_date,
+			requested_date,
+			deliver_date,
+			result_ok,
+			put_from_id,
+			put_to_id,
+			ok_quantity,
+			fail_quantity,
+			hold_reason
+		from job_inspect
+		where id = #{id} 
+	</select>
+
+	<!-- 가공 취소 -->
+	<update id="qcPlayStart" parameterType="HashMap">
+	
+		update job_inspect set
+			start_date = NOW(),
+			work_status = 'I'
+		where id = #{id} 
+
+	</update>
+	
+	<update id="qcDrawingStatusSet" parameterType="HashMap">
+	
+		update job_design_drawing set
+			current_stage = 'D',
+			work_status = #{ atype }
+		where id = #{dwid}
+
+	</update>
+	
+	<!-- 상태 홀드 -->
+	<update id="qcHoldSet" parameterType="HashMap">
+		update job_inspect set
+			stop_date = NOW(),
+			work_status = #{ atype },
+			hold_reason = #{ reason }
+		where id = #{id} 
+	</update>
+	
+	<!-- 검사 완료처리 -->
+	<update id="qcCompleteSet" parameterType="HashMap">
+		update job_inspect set
+			work_status = 'F',
+			requested_date = NOW(),
+			result_ok = #{ resultok },
+			ok_quantity = #{ okcnt },
+			fail_quantity = #{ failcnt },
+			inspect_progress = 100
+		where id = #{id};
+
+	</update>
+	
+	<!-- 검사 인수인계 처리 -->
+	<update id="qcDeliverySet" parameterType="HashMap">
+		update job_inspect set
+			deliver_date = NOW(),
+			put_from_id = #{ fromid },
+			put_to_id = #{ toid },
+			is_delivery = 'Y'
+		where id = #{id};
+
+	</update>
+	
+	<update id="qcCompleteDrawingSet" parameterType="HashMap">
+		update job_design_drawing set
+			current_stage = 'D',
+			work_status = 'F',
+			inspect_date = DATE_FORMAT(NOW(), '%Y-%m-%d')
+		where id = #{dwid};
+	</update>
+	
+	<update id="qcDeliveryDrawingSet" parameterType="HashMap">
+		update job_design_drawing set
+			current_stage = 'B',
+			work_status = 'R'
+		where id = #{dwid};
+	</update>
+	
+	<select id="qcDeliveryGetOrderId" parameterType="Long" resultType="Long">
+		select order_id 
+		from job_design_drawing
+		where id = #{id} 
+	</select>
+	
+	<select id="qcDeliveryGetQtywithSpare" parameterType="Long" resultType="int">
+		select (quantity+spare) 
+		from job_design_drawing
+		where id = #{id} 
+	</select>
+</mapper>

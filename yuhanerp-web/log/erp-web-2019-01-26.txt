@@ -1,0 +1,6 @@
+01:23:55.738 pool-4-thread-1 DEBUG com.yuhannci.erp.mapper.MailMapper.selectUnsentMail - ==>  Preparing: select id, subject, body, from_user_id, (select concat(name, '<', email, '>') from `user` where `user`.id = mailing.from_user_id) as sender_email, registered_date, sent_date, hint from mailing where send_status = 'R' limit 2 for update 
+01:23:55.744 pool-4-thread-1 DEBUG com.yuhannci.erp.mapper.MailMapper.selectUnsentMail - ==> Parameters: 
+01:23:55.756 pool-4-thread-1 DEBUG com.yuhannci.erp.mapper.MailMapper.selectUnsentMail - <==      Total: 0
+01:24:00.019 pool-4-thread-1 DEBUG com.yuhannci.erp.mapper.MailMapper.selectUnsentMail - ==>  Preparing: select id, subject, body, from_user_id, (select concat(name, '<', email, '>') from `user` where `user`.id = mailing.from_user_id) as sender_email, registered_date, sent_date, hint from mailing where send_status = 'R' limit 2 for update 
+01:24:00.020 pool-4-thread-1 DEBUG com.yuhannci.erp.mapper.MailMapper.selectUnsentMail - ==> Parameters: 
+01:24:00.025 pool-4-thread-1 DEBUG com.yuhannci.erp.mapper.MailMapper.selectUnsentMail - <==      Total: 0

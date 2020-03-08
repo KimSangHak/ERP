@@ -1,0 +1,156 @@
+@import 'style.css';
+
+/* 프린트 */
+.popPrint {padding:10px 0;}
+.popPrint .popTitArea {text-align:center;}
+.popPrint .popTitArea h1 {font-size:20px; color:#333;}
+.popPrint .popTitArea .lastData {float:right; text-align:right; margin-top:-10px; font-size:13px; color:#777;}
+.popPrint .listArea {margin:20px 0 10px 0;}
+.popPrint .listArea .listTit {width:100%; margin:15px 0 10px 0;}
+.popPrint .listArea .listTit h3 {font-size:14px; color:#333; font-weight:500;}
+.popPrint .listBox th {font-size:11px; padding:10px 5px; line-height:14px;}
+.popPrint .listBox td {line-height:10px; padding:5px 1px; font-size:8px; height:20px;}
+.popPrint .listBox td a {font-size:10px;}
+.popPrint .listBox input[type="text"] {font-size:10px; padding:0;}
+.popPrint .listBox input[type="text"]:disabled {font-size:10px; padding:0;}
+.popPrint .listBox textarea {font-size:10px; padding:0;}
+.popPrint .listBox textarea[readonly] {margin:7% 0 5px 0; font-size:10px;}
+.popPrint .listBox select {font-size:10px;}
+.popPrint .listBox select[disabled] {font-size:10px;}
+
+/* 팝업공통스타일 */
+.popForm .popTitArea {background:#1750a3; padding:15px 0;}
+.popForm .popTitArea h1 {font-size:18px; color:#fff; padding-left:20px; font-weight:400;}
+.popForm .popCont {padding:5px 15px 15px 15px;}
+.popForm .popCont .pcTit:after {content:" "; display:block; clear:both;}
+.popForm .popCont .pcTit h2 {float:left;font-size:16px; color:#333; font-weight:500; padding-top:10px;}
+.popForm .popCont .pcTit .btn_area {float:right; text-align:right; margin-top:5px;}
+.popForm .popCont .pcTit .btn_area span {display:inline-block;}
+.popForm .popCont .pcTit .btn_area .st {padding-right:3px;}
+
+
+.popForm .popCont .popBtn {padding:15px 0 10px 0; text-align:center;}
+.popDes {font-size:14px; color:#2d6bc4; text-align:center; padding:10px 0 5px 0;}
+
+.alert {text-align:center; font-size:16px; padding:20px 20px 0 20px;}
+
+/* 팝업리스트 */
+.popBoard {margin-top:10px;}
+.popBoard table {width:100%; border-top:1px solid #aaaaaa; right:20px;}
+.popBoard tr {border-bottom:1px solid #d8d8d8;}
+.popBoard th {background:#fafafb; color:#333; font-size:15px; font-weight:400; line-height:20px; padding:15px 5px; vertical-align:middle; text-align:center; border-right:1px solid #dedede;}
+.popBoard th:last-child {border-right:none;}
+.popBoard td {line-height:18px; padding:5px 3px; text-align:center; height:35px;  vertical-align:middle; font-size:13px; font-weight:400; color:#777; border:1px solid #dedede; letter-spacing:-0.031em;}
+.popBoard td:first-child {border-left:none;}
+.popBoard td:last-child {border-right:none;}
+.popBoard td a {font-size:13px; color:#2d6bc4;}
+.popBoard td a:hover {color:#476fec; font-weight:500;}
+.popBoard td a.btn_line_gray {color:#777;}
+.popBoard td a:hover.btn_line_gray {color:#476fec; font-weight:400;}
+.listbtnArea {text-align:center; margin:10px 0;}
+.popBoard input[type="text"], .popBoard input[type="date"], .popBoard input[type="number"], .popBoard input[type="file"] {width:100%; font-weight:400; color:#777; padding:3px; letter-spacing:-0.031em;}
+.popBoard input[type="text"]:disabled, .popBoard input[type="date"]:disabled, .popBoard input[type="number"]:disabled, .popBoard input[type="file"]:disabled {border:none; padding:0; background:none; letter-spacing:-0.031em;}
+.popBoard textarea {width:100%; height:100%; font-weight:400; color:#777; padding:3px; letter-spacing:-0.031em;}
+.popBoard textarea[readonly] {border:none; overflow:hidden; line-height:15px; height:100%; margin:7% 0 5px 0; font-size:13px;  font-weight:400; color:#777;}
+.popBoard select {width:100%; font-weight:400; color:#777; text-indent:3px;}
+.popBoard select[disabled] {border:none; display:inline-block; padding:0; background:none;}
+
+/* 팝업 게시판 */
+.popBox table, .popBox01 table {width:100%;border-top:none;border-top:1px solid #aaaaaa;}
+.popBox tr, .popBox01 tr {border-bottom:1px solid #d8d8d8;}
+.popBox th {background:#fafafb; color:#333; font-size:14px; font-weight:400; line-height:20px; height:35px; padding:5px 10px; vertical-align:middle; text-align:left; border-right:1px solid #dedede;}
+.popBox01 th  {background:#fafafb; color:#333; font-size:14px; font-weight:400; line-height:20px; height:35px; padding:5px 10px; vertical-align:middle; text-align:center; border-right:1px solid #dedede;}
+.popBox th:last-child, .popBox01 th:last-child {border-right:none;}
+.popBox td {line-height:20px; height:35px; padding:5px 10px; text-align:left; vertical-align:middle; border-right:1px solid #dedede;}
+.popBox01 td {line-height:20px; height:35px; padding:5px 10px; text-align:center; vertical-align:middle; border-right:1px solid #dedede;}
+.popBox td:last-child, .popBox01 td:last-child {border-right:none;}
+.popBox td label, .popBox01 td label {margin-right:10px;}
+.popBox td label:last-child, .popBox01 td label:last-child {margin-right:none;}
+.popBox p, .popBox01 p {margin-bottom:5px;}
+.popBox, .popBox01 {margin-top:15px; text-align:right;}
+.borTop {border-top:1px solid #aaaaaa;}
+.popBox input[type="text"], .popBox input[type="date"], .popBox input[type="number"], .popBox input[type="file"] {width:100%; font-weight:400; color:#777; padding:3px; letter-spacing:-0.031em;}
+.popBox input[type="text"]:disabled, .popBox input[type="date"]:disabled, .popBox input[type="number"]:disabled, .popBox input[type="file"]:disabled {border:none; padding:0; background:none; letter-spacing:-0.031em;}
+.popBox textarea {width:100%; height:100%; font-weight:400; color:#777; padding:3px; letter-spacing:-0.031em;}
+.popBox textarea[readonly] {border:none; overflow:hidden; line-height:15px; height:100%; margin:7% 0 5px 0; font-size:13px;  font-weight:400; color:#777;}
+.popBox select {width:100%; font-weight:400; color:#777; text-indent:3px;}
+.popBox select[disabled] {border:none; display:inline-block; padding:0; background:none;}
+
+.popBox a.btn_line_blue_p {display:inline-block; min-width:25px; padding:0 5px; height:33px; border:1px solid #99b7e2; color:#2d6bc4; font-size:15px; text-align:center; line-height:33px; font-size:18px; font-weight:500;}
+.popBox a:hover.btn_line_blue_p {border:1px solid #2d49a3; color:#2d49a3;}
+
+.popBox a.btn_line_red_m {display:inline-block; min-width:25px; padding:0 5px; height:33px; border:1px solid #ea95a3; color:#e54962; font-size:15px; text-align:center; line-height:30px; font-size:22px; font-weight:500;}
+.popBox a:hover.btn_line_red_m {border:1px solid #c4234d; color:#c4234d;}
+
+.popBox a.btn_line_gray {display:inline-block; min-width:30px; padding:0 10px; height:33px; border:1px solid #dedede; color:#777; font-size:15px; text-align:center; line-height:33px;}
+.popBox a:hover.btn_line_gray {border:1px solid #476fec; color:#2d49a3;}
+
+/* 테이블속 이미지 */
+.popImg {width:800px;}
+.popImg img {width:100%;}
+
+/* 도면관리 텍스트 */
+.planArea .planCont {width:100%; height:165px; margin-top:10px; border:1px solid #d8d8d8;}
+.planArea .planCont textarea {width:100%; height:100%; padding:10px; border:none;}
+.planArea .btn_area {padding:15px 0 10px 0; text-align:center;}
+
+.progress {margin-top:10px; text-align:center; border:1px solid #d8d8d8; background:#f8f8f8; padding:10px;}
+.progress p {line-height:24px;}
+.progress .blue {color:#2d6bc4;}
+.progress span {display:inline-block;}
+.progress p textarea {width:90%; padding:5px;}
+
+/* 휴가원 */
+.etcArea {margin-top:10px; text-align:center; border:1px solid #d8d8d8; padding:10px;}
+.etcArea p {line-height:24px; padding:5px 0;}
+
+/* 회원찾기 */
+.memSearch  {border-top:1px solid #d8d8d8; border-left:1px solid #d8d8d8; border-right:1px solid #d8d8d8; padding:15px 15px 0 15px; margin-top:10px;}
+.memSearch li {display:inline-block; font-size:15px; color:#555;}
+.memSearch li span {padding:0 10px; font-weight:500;}
+.memSearch li input[type="text"] {width:100%;}
+.memSearchList {border-left:1px solid #d8d8d8; border-right:1px solid #d8d8d8; border-bottom:1px solid #d8d8d8; padding:0 20px 0 20px; margin:20px 0;}
+.memSearchList:after {content:" "; display:block; clear:both;}
+.memSearchList .mslistCont {border-right:1px solid #d8d8d8;}
+.memSearchList .mslistCont .leftCont {float:left; width:50%; min-height:150px;}
+.memSearchList .mslistCont .sstit {background:#f8f8f8; border-left:1px solid #d8d8d8; border-right:1px solid #d8d8d8; border-bottom:1px solid #d8d8d8; border-top:1px solid #d8d8d8;  padding:7px 10px;}
+.memSearchList .mslistCont .sstit:after {content:" "; display:block; clear:both;}
+.memSearchList .mslistCont .sstit span {line-height:24px;}
+.memSearchList .mslistCont .sstit a {font-size:14px; line-height:24px; min-width:40px; height:24px; padding:0 5px; float:right;}
+.memSearchList .mslistCont .rightCont {float:left; width:50%; margin:0 -1px;}
+.memSearchList .mslistCont .contlist {padding:10px; border-left:1px solid #d8d8d8; border-right:1px solid #d8d8d8; border-bottom:1px solid #d8d8d8; height:150px; overflow-y:scroll;}
+.memSearchList .mslistCont .contlist li {display:block; padding-bottom:5px;}
+.memSearchList .mslistCont .contlist li label {width:100%; display:block;}
+.memSearchList .mslistCont .contlist li ul {padding:5px 0 0 15px;}
+
+
+/* 클라이언트 */
+.client {border:1px solid #d8d8d8; padding:25px 15px 0 15px; margin-top:10px;}
+.client .client_search li {display:inline-block; text-align:left; padding-bottom:5px;}
+.client .client_search span {display:inline-block; padding:0 15px;}
+.client .client_search span:first-child {padding-right:10px;}
+.client .client_search span:last-child {padding-right:0;}
+.client .client_search em {display:inline-block;}
+
+/* 회원찾기 */
+.moSearch  {border:1px solid #d8d8d8; padding:15px; margin-top:10px;}
+.moSearch li {display:inline-block; font-size:15px; color:#555;}
+.moSearch li span {padding:0 10px; font-weight:500;}
+.moSearch li input[type="text"] {width:100%;}
+.moSearchArea  {border:1px solid #d8d8d8; padding:15px; margin-top:10px; height:300px; overflow-y:scroll;}
+
+/* 메일발송 */
+.mail_con {/*padding:20px;*/ border:1px solid #d8d8d8; padding:15px; margin-top:10px;}
+.mail_con .mail_text {height:150px; padding:10px 0;}
+.mail_con .mail_text textarea  {width:100%; height:100%; font-weight:400; color:#777; padding:5px; letter-spacing:-0.031em;}
+.mail_con .popListTit {/*border-top:1px solid #aaaaaa;*/}
+.mail_con .popListTit h3 {font-size:15px; color:#555; font-weight:500; margin:6px 0;}
+.mail_con .popListTit h4 {font-size:13px; color:#777; font-weight:400; margin:6px 0;}
+
+.care_text {margin-top:10px; font-weight:400;}
+.care_text h6 {color:#eb6d3b; padding-bottom:5px;}
+.care_text li {padding-bottom:5px;}
+.care_text span {color:#eb6d3b;}
+
+/* 메세지 */
+.popText {padding:10px 0;text-align:center; line-height:20px;}

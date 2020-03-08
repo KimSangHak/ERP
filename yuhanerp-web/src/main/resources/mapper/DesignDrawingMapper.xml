@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.DesignDrawingMapper">
+
+	<select id="countDrawing" parameterType="HashMap" resultType="Integer">
+
+		select count(*)
+		from job_design_drawing src
+		where 1=1
+		and
+		src.order_no_base = #{orderNoBase}
+		and src.order_no_extra =
+		#{orderNoExtra}
+		and src.drawing_no = #{drawingNo};
+
+	</select>
+
+	<insert id="insertDrawing" parameterType="com.yuhannci.erp.model.db.JobDesignDrawing" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+
+		insert into
+		job_design_drawing
+			(order_id
+			,order_type
+			,order_no_base
+			,order_no_extra
+			,drawing_no
+			,description
+			,dimension
+			,material
+			,thermal
+			,quantity
+			,spare
+			,classification
+			,reason
+			,postprocessing
+			,note
+			,checking
+			,current_stage
+			)
+		values
+			(#{orderId}
+			,#{orderType}
+			,#{orderNoBase}
+			,#{orderNoExtra}
+			,#{drawingNo}
+			,#{description}
+			,#{dimension}
+			,#{material}
+			,#{thermal}
+			,#{quantity}
+			,#{spare}
+			,#{classification}
+			,#{reason}
+			,#{postprocessing}
+			,#{note}
+			,#{checking}
+			,'B'
+			);
+
+	</insert>
+	
+	<select id="outScourcingPTNamefromHistory" parameterType="String" resultType="String">
+		select partner_name from job_partner where id = #{id};
+		
+	</select>
+</mapper>

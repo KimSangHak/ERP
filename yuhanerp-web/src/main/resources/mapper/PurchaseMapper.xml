@@ -1,0 +1,3059 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.PurchaseMapper">
+
+	<sql id="commonJobPurchaseSelectFields">
+			job_order_id,
+			partner_id,
+			(select device from job_order where job_order.id = job_purchase.job_order_id) as device,
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = job_purchase.job_order_id) as job_order_no,
+			(select partner_name from job_partner where job_partner.id = job_purchase.partner_id) as partnerName,
+			
+			count(*) as count
+	</sql>
+	<select id="selectPurchaseEntry" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPurchase">
+	
+		select 	*,		  
+			<include refid="commonJobPurchaseSelectFields"></include>
+		from job_purchase
+		where 
+			deleted = 'N'
+			<if test="jobPurchaseId != null"> 
+			and id = #{jobPurchaseId}		
+			</if>
+			<if test="jobOrderId != null">
+			and job_order_id = #{jobOrderid}
+			</if>
+			<if test="partnerId != null">
+			and partner_id = #{partnerId}
+			</if>
+	
+	</select>
+	<select id="selectPurchaseEntries" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPurchase">
+	
+		select 	*,		  
+			<include refid="commonJobPurchaseSelectFields"></include>
+		from job_purchase
+		where 
+			deleted = 'N'
+			<if test="jobPurchaseId != null"> 
+			and id = #{jobPurchaseId}		
+			</if>
+			<if test="jobOrderId != null">
+			and job_order_id = #{jobOrderId}
+			</if>
+			<if test="partnerId != null">
+			and partner_id = #{partnerId}
+			</if>
+	
+	</select>
+	<select id="selectPartnerId" parameterType="String" resultType="String">
+	
+		select b.partner_id
+			from job_partner a 
+			inner join job_purchase b
+			on a.id = b.partner_id
+			and a.partner_name = #{customer}
+			group by partner_id
+		
+	</select>
+
+	<select id="selectPurchaseListForEstimate" parameterType="HashMap" resultType="com.yuhannci.erp.model.GroupedJobPurchaseEntry">
+	
+		select 
+			d.job_order_id,
+			d.partner_id,
+			d.reg_date,
+			(select device from job_order where id = d.job_order_id) as device,
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+			(select partner_name from job_partner where id = d.partner_id) as partnerName,
+			count(*) as count
+		from job_purchase d
+		inner join job_order a
+		on a.id = d.job_order_id
+		where d.deleted = 'N' and d.stage in ('R','E')
+		<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+			and a.order_no_base = #{orderNoBase}
+		</if>
+		<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+			and a.order_no_extra = #{orderNoExtra}
+		</if>
+		
+		<if test='roundRobinYN != null and roundRobinYN != "" and roundRobinYN != " "'>
+			and d.round_robinYN = #{roundRobinYN}
+		</if>
+		
+		group by job_order_id, partner_id
+		order by partner_id, job_order_id
+	
+	</select>
+	
+	<select id="selectPurchaseListForEstimate_request" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Purchase_E_ab">
+	
+		select
+			E.*, 
+			count(*) as count,
+			E.estimate_request_id, 
+			FN_GetDisplayOrderNo(job.order_type, job.order_no_base, job.order_no_extra) as job_order_no,
+			FN_GetPartnerName(P.partner_id) as partnerNameD,
+			FN_GetPartnerName(E.partner_id) as partnerName,
+			job.device,
+			sum(E.estimated_price * E.quantity) as sum
+		from purchase_estimate E
+			inner join job_order job on (E.job_order_id=job.id)
+			inner join job_purchase P on (E.job_purchase_id=P.id)
+		
+		
+		<if test='desc != null and desc != "" and desc != " "'>
+			 job.device like concat('%', #{desc}, '%')
+		</if>
+		<if test = 'kind == "H"'>
+			and P.stage in('R','E')		
+		</if>
+		
+		<if test='maker != null and maker != "" and maker != " "'>
+				and E.maker = #{maker}
+		</if>
+		<if test='partnerId != null and partnerId != "" and partnerId != " "'>
+				and E.partner_id = #{partnerId}
+		</if>
+		<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+			and job.order_no_base = #{orderNoBase}
+		</if>
+		<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+			and job.order_no_extra = #{orderNoExtra}
+		</if>
+		
+		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and E.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and E.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and E.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		group by E.estimate_request_id
+		order by E.reg_date DESC;
+		
+	
+	</select>
+	
+	<select id="getPurchaseListForEstimate_ListPOP" parameterType="com.yuhannci.erp.model.Choice_Estimate" resultType="com.yuhannci.erp.model.db.Purchase_E_ab">
+		select h.*,
+    	(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+    	(select partner_name from job_partner where job_partner.id = h.partner_id) as partnerName,
+	 	(select MAX(issue_price) from purchase_issue where model_no=h.model_no) as maxPrice,
+	 	(select (quantity-(IFNULL(ab_quantity,0)+IFNULL(out_quantity,0))) from stock where id=h.stockId) as sqty,
+	 	(select MIN(issue_price) from purchase_issue where model_no=h.model_no) as minPrice
+    	,d.unit_no, d.description, d.quantity as dqty
+	from purchase_estimate h 
+	inner join job_purchase d 
+	on d.id = h.job_purchase_id
+	where h.estimate_request_id = #{estimateRequestId}
+	
+	</select>
+
+	
+	
+	<select id="getPurchaseListForIssue_ListPOP" parameterType="com.yuhannci.erp.model.Choice_Estimate" resultType="com.yuhannci.erp.model.db.Purchase_I_ab">
+		select h.*,
+    	(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+    	(select partner_name from job_partner where job_partner.id = h.partner_id) as partnerName,
+    	d.unit_no, d.description, d.quantity as purchasequatity
+	from purchase_issue h 
+	inner join job_purchase d 
+	on d.id = h.job_purchase_id
+	where h.issue_request_id =  #{estimateRequestId} and h.cancle = 'N'
+	
+	</select>
+	
+	<update id="issueCancle" parameterType="HashMap">
+		update purchase_issue 
+		set
+		cancle = 'Y',
+		cancle_reason = #{cancleReason}
+		where
+		issue_request_id = #{issueRequestId} and
+		job_order_id = #{jobOrderId} and
+		job_purchase_id = #{jobPurchaseId}
+		
+	
+	</update>
+	 	
+	<select id="selectPurchaseListForIssue" parameterType="HashMap" resultType="com.yuhannci.erp.model.GroupedJobPurchaseEntry_Issue">
+	
+			select 
+			d.job_order_id,
+			d.partner_id,
+			d.reg_date,
+			(select device from job_order where id = d.job_order_id) as device,
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = d.job_order_id) as job_order_no,
+			(select partner_name from job_partner where id = d.partner_id) as partnerName,
+			count(*) as count
+		from job_purchase d
+		inner join job_order a
+		on a.id = d.job_order_id
+		where d.deleted = 'N' and d.stage in ( 'R', 'E')
+		<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+			and a.order_no_base like concat(#{orderNoBase}, '%')
+		</if>
+		<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+			and a.order_no_extra = #{orderNoExtra}
+		</if>
+		<if test='roundRobinYN != null and roundRobinYN != "" and roundRobinYN != " "'>
+			and d.round_robinYN = #{roundRobinYN}
+		</if>
+		group by job_order_id, partner_id
+		order by partner_id, job_order_id
+	</select> 
+	
+	<select id="selectChoiseEdit_Estimate" parameterType="com.yuhannci.erp.model.Choice_Estimate" resultType="com.yuhannci.erp.model.db.JobPurchaseNew_history_null">
+	select 
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = (select job_order_id from job_purchase where id = #{job_purchase_id})) as job_order_no,
+		(select partner_name from job_partner where job_partner.id = (select partner_id from job_purchase where id = #{job_purchase_id})) as partnerName,
+		(select issue_price from job_purchase_history where job_purchase_id=#{job_purchase_id} and d.stage = 'P' and h.request_type='R') as issuePricell,
+	 	(select MAX(issue_price) from job_purchase_history where model_no=d.model_no and d.stage = 'P' and h.request_type='R') as maxPrice,
+	 	(select MIN(issue_price) from job_purchase_history where model_no=d.model_no and d.stage = 'P' and h.request_type='R') as minPrice,
+	 	(select issue_date from job_purchase_history where job_purchase_id=#{job_purchase_id} and d.stage = 'P' and h.request_type='R') as orderIssueDate, 
+		d.unit_no, d.description, h.*
+	from job_purchase_history h
+	inner join job_purchase d
+	on h.request_id=#{request_id} and d.id = h.job_purchase_id;
+
+	</select> 
+	
+	<select id="EstimateHistory" parameterType="HashMap" resultType="com.yuhannci.erp.model.jobpurchaseEstimateHistory">
+	select
+    	(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+    	(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+    	d.unit_no, d.description, h.*
+	from job_purchase_history h 
+	inner join job_purchase d 
+	on d.deleted ='N' and h.request_type='E' and d.id = h.job_purchase_id
+	where h.job_purchase_id = #{job_purchase_id} and h.model_no = #{model_no}
+
+	</select> 
+	
+	<select id="IsStage_F" parameterType="Long" resultType="String">
+		select stage from job_purchase where id = #{id}
+	
+	</select>
+	
+	
+	<select id="selectPurchaseListForIssue_request" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Purchase_I_ab">
+	
+		select
+			I.*, 
+			count(*) as count,
+			I.issue_request_id, 
+			FN_GetDisplayOrderNo(job.order_type, job.order_no_base, job.order_no_extra) as job_order_no,
+			FN_GetPartnerName(P.partner_id) as partnerNameD,
+			FN_GetPartnerName(I.partner_id) as partnerName,
+			job.device,
+			sum(I.issue_price * I.quantity) as sum
+		from purchase_issue I
+			inner join job_order job on (I.job_order_id=job.id)
+			inner join job_purchase P on (I.job_purchase_id=P.id)
+		where I.cancle ='N'
+		<if test='desc != null and desc != "" and desc != " "'>
+			 and job.device like concat('%', #{desc}, '%')
+		</if>
+		<if test = 'kind == "H"'>
+			and I.issue_type in('C','H')		
+		</if>
+		
+		<if test='partnerId != null and partnerId != "" and partnerId != " "'>
+				and I.partner_id = #{partnerId}
+		</if>
+		
+		<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+			and job.order_no_base = #{orderNoBase}
+		</if>
+		<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+			and job.order_no_extra = #{orderNoExtra}
+		</if>
+		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and I.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and I.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and I.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		group by I.issue_request_id
+		order by I.reg_date DESC;
+	</select>
+	
+	<select id="innerStockpop" parameterType="String" resultType="com.yuhannci.erp.model.InnerStockModel">
+		select 
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+   		(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+   		IFNULL((select (quantity-ab_quantity) from stock where model_no=h.model_no and deleted = 'N'),0) as stockQuantity,
+	 	(select (quantity+IFNULL((select spare from job_purchase where id=h.job_purchase_id),0)) from job_purchase where id= h.job_purchase_id) as dquantitiy,
+   		d.unit_no,d.description, h.*
+   		from 
+   		purchase_issue h 
+			inner join job_purchase d 
+			on d.deleted ='N' and h.cancle = 'N' and d.id = h.job_purchase_id
+			where h.issue_request_id = #{issueRequestId} and d.stage = 'P'
+			order by d.job_order_id
+	
+	</select>
+	
+	
+	
+	<select id="innerListStockpop" parameterType="String" resultType="com.yuhannci.erp.model.InnerStockModel">
+		select 
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+   		(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+   		IFNULL((select (quantity-ab_quantity) from stock where model_no=h.model_no and deleted = 'N'),0) as stockQuantity,
+	 	(select (quantity+IFNULL((select spare from job_purchase where id=h.job_purchase_id),0)) from job_purchase where id= h.job_purchase_id) as dquantitiy,
+	 	(select (warehousing_quantity-IFNULL((select quantity from stock where model_no=h.model_no and deleted = 'N' and request_id=h.issue_request_id),0)) from job_purchase where id=h.job_purchase_id) as possibleQty,
+   		d.unit_no,d.description,d.warehousing_quantity, h.*
+   		from 
+   		purchase_issue h 
+			inner join job_purchase d 
+			on d.deleted ='N' and h.cancle = 'N' and d.id = h.job_purchase_id
+			where h.issue_request_id = #{issueRequestId} and d.stage = #{stage}
+			order by d.job_order_id
+	
+	</select>
+	
+	<select id="selectOneJobPurchase" parameterType="Long" resultType="com.yuhannci.erp.model.db.JobPurchaseDB">
+		select * from job_purchase where id= #{jobPurchaseId}
+		
+	</select>
+	
+	
+	<update id="innerUpdateList" parameterType="HashMap">
+		update job_purchase set
+		stage = 'O',
+		receive_dept = #{receiverUsr},
+		pass_usr = #{passUsr},
+		pass_date = now()
+		where id = #{jobPurchaseId}
+	
+	</update>
+	
+	
+	<update id="updateJobPurchase" parameterType="HashMap">
+		update job_purchase set
+		out_quantity = (out_quantity + #{outQuantity}),
+		out_user = #{outUser},
+		out_reason = #{reason},
+		stage = 'Z'
+		where id = #{jobPurchaseId}
+	
+	</update>
+	
+	
+	<insert id="reBuyreg" parameterType="com.yuhannci.erp.model.db.JobPurchaseDB">
+		insert into job_purchase
+		(job_design_drawing_Id,
+		job_order_id,
+		customer_id,
+		reg_date,
+		unit_no,
+		seq,
+		description,
+		model_no,
+		maker,
+		partner_id,
+		quantity,
+		spare,
+		code,
+		comment,
+		remark,
+		design_file_no,
+		stage,
+		deleted,
+		statement_type)
+		
+		values
+		(#{jobDesignDrawingId},
+		#{jobOrderId},
+		#{customerId},
+		now(),
+		#{unitNo},
+		#{seq},
+		#{description},
+		#{modelNo},
+		#{maker},
+		#{partnerId},
+		#{quantity},
+		#{spare},
+		#{code},
+		#{comment},
+		#{remark},
+		#{designFileNo},
+		'R',
+		'N',
+		'X'		
+		)
+						
+		
+	
+	</insert>
+	
+	<select id="jobpurchaseIDselect" parameterType="String" resultType="Long">
+	
+		select job_purchase_id from job_purchase_history where request_id = #{requestId}
+	
+	</select>
+	
+	<select id="deptSurch" resultType="String">
+	
+		select dept_name from dept_data
+	
+	</select>
+	
+	<select id="deptSurch2" resultType="com.yuhannci.erp.model.db.DeptData">
+	
+		select * from dept_data
+	
+	</select>
+	
+	<select id="deptCode" parameterType="String" resultType="String">
+	
+		select id from dept_data where dept_name = #{name}
+	
+	</select>
+	
+	
+	<update id="innerAndOutUpdate" parameterType="com.yuhannci.erp.model.innerAndoutModel">
+		update job_purchase
+		set
+		warehousing_quantity = #{warehousingQuantity},
+		warehousing_user = #{warehousingUser},
+		warehousing_date = now(),
+		out_quantity = #{outQuantity},
+		out_user = #{outUser},
+		out_reason = #{outReason},
+		stage = 'F'
+		
+		where id = #{jobPurchaseId}
+	
+	</update>
+	
+	
+	<update id="innerAndOutUpdateO" parameterType="com.yuhannci.erp.model.innerAndoutModel">
+		update job_purchase
+		set
+		warehousing_quantity = #{warehousingQuantity},
+		warehousing_user = #{warehousingUser},
+		warehousing_date = now(),
+		out_quantity = #{outQuantity},
+		out_user = #{outUser},
+		out_reason = #{outReason},
+		stage = 'O',
+		receive_dept = #{receiverUsr}
+		
+		where id = #{jobPurchaseId}
+	
+	</update>
+	
+	
+	<insert id="insertTransitionpurchase" parameterType="com.yuhannci.erp.model.db.TransitionPurchase">
+	
+		insert into transition_purchase 
+		
+		(preId ,job_order_id, job_purchase_id, kind_purchase, stockId, stock_history_id , pass_usr, receive_dept, abstock, quantity, kind_repass, reReason)
+		
+		values
+		(#{preId} ,#{jobOrderId}, #{jobPurchaseId}, #{kindPurchase}, #{stockId}, #{stockHistoryId} , #{passUsr}, #{receiveDept}, #{abstock}, #{quantity}, #{kindRepass}, #{reReason})
+	
+	</insert>
+	
+	
+	<update id="innerAndOutUpdateplus" parameterType="com.yuhannci.erp.model.innerAndoutModel">
+		update job_purchase
+		set
+		warehousing_quantity = #{warehousingQuantity},
+		warehousing_user = #{warehousingUser},
+		warehousing_date = now(),
+		pass_date = now(),
+		pass_usr= #{passUsr},
+		receiver_usr = #{receiverUsr},
+		out_quantity = #{outQuantity},
+		out_user = #{outUser},
+		out_reason = #{outReason},
+		stage = 'O'
+		
+		where id = #{jobPurchaseId}
+	
+	</update>
+	
+	<select id="outStockpop" parameterType="HashMap" resultType="com.yuhannci.erp.model.InnerStockModel">
+			select 
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+   		(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+   		d.unit_no,d.description, h.issue_request_id, h.job_order_id, h.job_purchase_id,  h.model_no, h.maker, h.quantity
+   		from 
+   		purchase_issue h 
+		inner join job_purchase d 
+		on d.deleted ='N' and d.id = h.job_purchase_id
+		where d.id = #{jobPurchaseId} and h.issue_request_id = #{issueRequestId} and h.job_order_id = #{jobOrderId}
+	
+	</select>
+	
+	<select id="selectPurchaseList_History" parameterType="HashMap" resultType="java.util.LinkedHashMap">
+	
+		select
+     	(select device from job_order where job_order.id = d.job_order_id) as device,
+     	(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+     	(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+     	(select MAX(issue_price) from job_purchase_history where model_no=d.model_no and d.stage = 'P' and h.request_type='R') as maxPrice,
+	 	(select MIN(issue_price) from job_purchase_history where model_no=d.model_no and d.stage = 'P' and h.request_type='R') as minPrice,
+	 	(select quantity from stock where model_no=h.model_no and deleted = 'N') as stockQuantity,
+	 	(select ab_quantity from stock where model_no=h.model_no and deleted = 'N') as abQuantity,
+     	d.unit_no ,d.description, d.quantity ,h.*
+		from job_purchase_history h
+		inner join job_purchase d 
+		on h.job_purchase_id = d.id
+		where d.deleted ='N' and d.stage= 'P' and h.request_type = 'R' and d.id = #{job_purchase_id} and h.request_id = #{request_id}
+		order by d.partner_id, d.job_order_id
+	</select>
+	
+	
+	
+	<select id="selectJobpurchaseNew" parameterType="com.yuhannci.erp.model.db.SelectJobPurchaseNew" resultType="com.yuhannci.erp.model.db.JobPurchaseNew">
+	
+		select * from job_purchase where job_order_id=#{job_order_id} and partner_id=#{partner_id};
+
+	</select>
+	
+	<update id="UpdateJobPurchaseNew" parameterType="com.yuhannci.erp.model.db.SelectJobPurchaseNew">
+		update job_purchase
+		
+		set 
+		
+		stage = 'E',
+		estimate_request_id = #{estimate_request_id},
+		estimate_requested_when = now(),
+		estimate_request_user_id = #{estimate_request_user_id}
+		
+		where id = #{id};
+
+	</update>
+	
+	<delete id="EstimateListDeleted" parameterType="HashMap">
+		delete from purchase_estimate
+		
+		where estimate_request_id = #{estimateRequestId} and job_order_id = #{jobOrderId} and job_purchase_id = #{jobPurchaseId};
+
+	</delete>
+	
+	<update id="EstimateListUpdated" parameterType="com.yuhannci.erp.model.EstimateListUpdated">
+		update 
+			purchase_estimate
+		
+		set 
+	
+			receive_date = #{receiveDate},
+			estimated_price = #{estimatedPrice}
+		
+		where job_purchase_id = #{jobPurchaseId} and estimate_request_id = #{estimateRequestId} and job_order_id = #{jobOrderId};
+
+	</update>
+	
+	<select id="selectWarehousing" resultType="java.util.LinkedHashMap">
+	
+		select
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+			(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName
+			,d.quantity, d.stage, d.order_requested_when,
+			h.job_purchase_id, h.request_id, h.issue_date, h.supply_price 
+		from job_purchase d
+		inner join job_purchase_history h
+		on(d.id = h.job_purchase_id);
+	
+	</select>
+	
+	<select id="selectWarehousing_pop" resultType="java.util.LinkedHashMap" parameterType="String">
+	
+	 select (select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+    (select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName
+    ,d.quantity, d.stage, d.order_requested_when,d.unit_no, d.description, h.*
+    from job_purchase d 
+    inner join job_purchase_history h
+    on(d.id = h.job_purchase_id)
+    where (select GROUP_CONCAT(job_purchase_id, '-' ,request_id) from job_purchase_history) = #{BuyNum};
+	</select> 		 				
+	
+	<insert id="insertWarehousing" parameterType="com.yuhannci.erp.model.db.warehousing_list" >
+	
+		insert into warehousing_list (	BuyNum, warehousing_quantity, 
+									out_quantity, 
+									out_reason, out_person, 
+									warehousing_Date)
+			values ( #{BuyNum}, #{warehousing_quantity}, #{out_quantity}, #{out_reason}, #{out_person},
+						now())
+	</insert>
+	
+	<insert id="InsertJobPurchaseNew_history" parameterType="com.yuhannci.erp.model.db.JobPurchaseNew_history" >
+	
+		insert into job_purchase_history (job_purchase_id, request_id, request_type, model_no, maker, issue_date, order_quantity)
+			values ( #{job_purchase_id}, #{request_id}, #{request_type}, #{modelNo}, #{maker}, now(), #{order_quantity})
+	</insert>
+	
+	<update id="updateStage" parameterType="String">
+		update job_purchase d inner join job_purchase_history h
+		on(d.id = h.job_purchase_id)
+		set d.stage = 'F'
+		where (select GROUP_CONCAT(job_purchase_id, '-' ,request_id) from job_purchase_history) = #{BuyNum};
+
+	</update>
+	 		 				
+	
+	<update id="markAsEstimateRequested" parameterType="HashMap">
+		update job_purchase		set 
+			estimate_request_id = #{estimateRequestId},
+			estimate_requested_when = now(),
+			estimate_request_user_id = #{estimateRequestUserId},
+			STAGE = 'E'
+		where
+			partner_id = #{partnerId} and job_order_id = #{jobOrderId}
+	</update>
+	
+	
+	<select id="selectEstimateRequestTargets" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPurchase">
+	
+		select *,
+				job_order_id,
+			partner_id,
+			(select device from job_order where job_order.id = job_purchase.job_order_id) as device,
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = job_purchase.job_order_id) as job_order_no,
+			(select partner_name from job_partner where job_partner.id = job_purchase.partner_id) as partnerName
+		from job_purchase
+		<where>
+
+			job_order_id in		
+			<foreach collection="jobOrderId" item="V" open="(" close=")" separator=",">
+				#{V}
+			</foreach>
+			
+			<if test="partnerId != null">
+				and partner_id = #{partnerId}
+			</if>
+			
+			and deleted = 'N' and stage = 'R'
+		
+		</where> 
+		order by job_order_id
+	
+	</select>
+	
+	<select id="innerStockList"  parameterType="HashMap" resultType="com.yuhannci.erp.model.InnerStockModel">
+		select 
+
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+   		(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+   		(select count(*) from job_purchase where partner_id=h.partner_id and stage='P' and order_request_id = h.issue_request_id) as noneinnersotck,
+   		(select sum(issue_price*quantity) from purchase_issue where job_purchase_id in((select id from job_purchase where stage='P' and order_request_id = h.issue_request_id))) as sumPrice,
+   		count(*) as count,
+   		h.*
+   		from 
+   		purchase_issue h 
+		inner join job_purchase d 
+		on d.deleted ='N' and d.stage= 'P' and d.id = h.job_purchase_id
+		where h.cancle = 'N'
+		
+			<if test='partnerId != null and partnerId != "" and partnerId != " "'>
+				and d.partner_id = #{partnerId}
+			</if>
+			<choose>
+				<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+					and h.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+				</when>
+				<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+					<![CDATA[
+						and h.reg_date &gt; #{convertedDesignDateBegin}
+					]]> 
+				</when>
+				<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+					and h.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+				</when>
+		
+			</choose>
+			
+			<if test='roundRobinYN != null and roundRobinYN != "" and roundRobinYN != " "'>
+				and d.round_robinYN = #{roundRobinYN}
+			</if>
+		
+	
+	
+		group by issue_request_id, job_order_id
+		order by h.receive_date
+	
+	
+	
+	</select>
+	
+	
+	
+	<select id="selectIssueRequestTargets" parameterType="HashMap" resultType="com.yuhannci.erp.model.MailSendIssue">
+	
+		select
+    		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+    		(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+    		(select issue_price from job_purchase_history where d.id=h.job_purchase_id and d.stage = 'P' and h.request_type='R') as issue_pricell,
+	 		(select MAX(issue_price) from job_purchase_history where model_no=d.model_no and d.stage = 'P' and h.request_type='R') as MaxPrice,
+	 		(select MIN(issue_price) from job_purchase_history where model_no=d.model_no and d.stage = 'P' and h.request_type='R') as MinPrice,
+	 		(select issue_date from job_purchase_history where d.id=h.job_purchase_id and d.stage = 'P' and request_type='R') as OrderIssue_date,
+	 		(select device from job_order where job_order.id = d.job_order_id) as device,
+	 		(select quantity from stock where model_no=h.model_no and deleted = 'N') as stockQuantity
+    		,d.unit_no, d.description, d.seq, d.spare,d.quantity,d.job_order_id, d.partner_id, h.*
+		from job_purchase_history h 
+		inner join job_purchase d 
+		on d.id = h.job_purchase_id
+		<where>
+
+			job_order_id in		
+			<foreach collection="jobOrderId" item="V" open="(" close=")" separator=",">
+				#{V}
+			</foreach>
+			
+			<if test="partnerId != null">
+				and partner_id = #{partnerId}
+			</if>
+		
+		</where> 
+		order by job_order_id
+	
+	</select>
+	
+	<select id="selectPartnerName" resultType="String">
+		select partner_name from job_partner where view_purchase = 'Y' order by partner_name
+	
+	</select>
+	
+	<select id="selectPartnerIdName" resultType="com.yuhannci.erp.model.PurchasePartner">
+		select id, partner_name from job_partner where view_purchase = 'Y' order by partner_name
+	
+	</select>
+	
+	<select id="IdforNamePartner" parameterType="String" resultType="String">
+		select partner_name from job_partner where id=#{id}
+	
+	</select>
+	
+	<select id="NameforIdPartner" parameterType="String" resultType="String">
+		select id from job_partner where partner_name=#{name}
+	
+	</select>
+	
+	
+	
+	<select id="preEstimateRequestTargets" parameterType="HashMap" resultType="com.yuhannci.erp.model.PreEstimateRequest">
+	
+		select
+    		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+    		(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+	 		(select device from job_order where job_order.id = d.job_order_id) as device,
+	 		(select quantity from stock where model_no=d.model_no and deleted = 'N') as stockQuantity,
+	 		(select ab_quantity from stock where model_no=d.model_no and deleted = 'N') as abQuantity
+    		,d.id,d.unit_no, d.description, d.model_no, d.remark, d.comment, d.seq, d.spare,d.quantity, d.job_order_id, d.partner_id, d.maker, d.stock_use_quantity
+		from job_purchase d
+		<where>
+			d.stage in('R','E') and
+			
+			job_order_id in		
+			<foreach collection="jobOrderId" item="V" open="(" close=")" separator=",">
+				#{V}
+			</foreach>
+			
+			<if test="partnerId != null">
+				and partner_id = #{partnerId}
+			</if>
+		
+		</where> 
+		order by job_order_id
+	
+	</select>
+	
+	<select id="preIssueRequestTargets" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Purchase_I_ab">
+	
+			select
+    		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+    		(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+	 		(select device from job_order where job_order.id = d.job_order_id) as device,
+	 		IFNULL((select (quantity-(IFNULL(ab_quantity,0)+IFNULL(out_quantity,0))) from stock where model_no=d.model_no and deleted = 'N'),0) as stockqty,
+	 		(select quantity+spare from job_purchase where id=d.id),
+	 		(select MIN(estimated_price) from purchase_estimate where job_order_id=d.id and job_purchase_id=d.id) as minestimatedPrice,
+	 		(select MIN(issue_price) from purchase_issue where model_no=d.model_no) as min,
+	 		(select MAX(issue_price) from purchase_issue where model_no=d.model_no) as max,
+	 		IFNULL(d.spare,0) as spare,
+    		d.id,d.unit_no, d.description, d.model_no, d.remark , d.seq, d.quantity, d.job_order_id, d.partner_id, d.maker, d.stock_use_quantity, d.robin_request_date, d.round_robinYN
+		from job_purchase d
+		<where>
+		
+		d.stage in('R','E') and
+
+			job_order_id in		
+			<foreach collection="jobOrderId" item="V" open="(" close=")" separator=",">
+				#{V}
+			</foreach>
+			
+			<if test="partnerId != null">
+				and partner_id = #{partnerId}
+			</if>
+		
+		</where> 
+		order by job_order_id
+	
+	</select>
+	
+	<select id="selectIssueRequestTargetsNew" parameterType="HashMap" resultType="com.yuhannci.erp.model.MailSendIssueNew">
+	
+		select
+    			*,
+    		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where id = job_purchase.job_order_id) as job_order_no,
+    		
+    		(select partner_name from job_partner where id = job_purchase.partner_id) as partnerName,
+    		
+    		(select issue_price from job_purchase_history where job_purchase_id=job_purchase.id and request_type='R'and job_purchase.stage = 'P') as issue_pricell,
+    		
+	 		(select MAX(issue_price) from job_purchase_history where model_no=job_purchase.model_no and request_type='R' and job_purchase.stage = 'P') as MaxPrice,
+	 		
+	 		(select MIN(issue_price) from job_purchase_history where model_no=job_purchase.model_no and request_type='R' and job_purchase.stage = 'P') as MinPrice,
+	 		
+	 		(select issue_date from job_purchase_history where job_purchase_id=job_purchase.id and request_type='R' and job_purchase.stage = 'P') as OrderIssue_date,
+	 		
+	 		(select device from job_order where id = job_purchase.job_order_id) as device,
+	 		
+	 		(select quantity from stock where model_no=job_purchase.model_no and deleted = 'N') as stockQuantity,
+	 		
+	 		(select ab_quantity from stock where model_no=job_purchase.model_no and deleted = 'N') as abQuantity
+    		
+			from job_purchase 
+		<where>
+
+			job_order_id in		
+			<foreach collection="jobOrderId" item="V" open="(" close=")" separator=",">
+				#{V}
+			</foreach>
+			
+			<if test="partnerId != null">
+				and partner_id = #{partnerId}
+			</if>
+		
+		</where> 
+		order by job_order_id
+	
+	</select>
+	
+	<select id="sspartnerId" parameterType="String" resultType="String">
+		select partner_id from purchase_estimate where estimate_request_id =#{estimateRequestId}
+		group by estimate_request_id
+	</select>
+	
+	
+	<select id="selectIssueMailText" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Purchase_I_ab">
+	
+		select
+    		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+    		(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+	 		(select device from job_order where job_order.id = d.job_order_id) as device,
+    		d.code ,d.unit_no, d.description, d.seq, d.comment, d.maker, h.*
+			from purchase_issue_before h 
+			inner join job_purchase d 
+			on d.id = h.job_purchase_id
+			
+			where (d.quantity-h.ab_quantity) > 0
+		
+
+			and h.job_order_id in		
+			<foreach collection="jobOrderId" item="V" open="(" close=")" separator=",">
+				#{V}
+			</foreach>
+			
+			
+			<if test="partnerId != null">
+				and h.partner_id = #{partnerId}
+			</if>
+		
+		 
+		order by h.job_order_id
+	
+	
+	</select>
+	
+	
+	<select id="getEstimateMailText" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Purchase_E_ab">
+	
+		select h.*,
+			(select device from job_order where job_order.id = h.job_order_id) as device,
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = h.job_order_id) as job_order_no,
+			(select partner_name from job_partner where job_partner.id = h.partner_id) as partnerName,
+			d.unit_no, d.seq, d.code, d.remark
+		from purchase_estimate_before h
+		inner join job_purchase d
+		on d.id = h.job_purchase_id
+		<where>
+
+			h.job_order_id in		
+			<foreach collection="jobOrderId" item="V" open="(" close=")" separator=",">
+				#{V}
+			</foreach>
+			
+		
+			
+			
+			<if test="partnerId != null">
+				and h.partner_id = #{partnerId}
+			</if>
+			
+	
+		</where> 
+		order by h.job_order_id
+	
+	
+	</select>
+	
+	
+	<insert id="insertPurchaseList" parameterType="HashMap" >
+	
+		insert into job_purchase (	job_order_id, customer_id, 
+									reg_date, 
+									unit_no, seq, 
+									description, 
+									model_no, maker, 
+									partner_id, quantity, spare, code, comment, remark, design_file_no, 
+									 stage)
+			values 
+			
+			( #{jobOrderId}, (select customer_id from job_order where id = #{jobOrderId}),
+						now(),
+						#{unitNo}, #{seq}, 
+						#{description}, 
+						#{modelNo}, #{maker}, 
+						#{partnerId}, #{quantity}, #{spareQuantity}, #{code}, #{comment}, #{remark}, #{designFileNo}, 
+						 'R' )
+			
+	</insert>
+	
+
+	<insert id="insertHistoryAB" parameterType="com.yuhannci.erp.model.db.JobPurchaseHistory" >
+	
+		insert into job_purchase_history_before_issue (	
+									job_purchase_id, 
+									request_id, 
+									request_type, 
+									model_no, 
+									maker, 
+									estimated_price, 
+									issue_date, 
+									issue_price, 
+									order_quantity, 
+									stock_use_quantity, 
+									stock_id, 
+									receive_date)
+			values 
+			
+			( #{jobPurchaseId}, #{requestId},
+						'R',
+						#{modelNo}, #{maker}, 
+						#{estimatedPrice}, 
+						#{issueDate}, #{issuePrice}, 
+						#{orderQuantity}, #{stockUseQuantity}, #{stockId}, #{receiveDate})
+			
+	</insert>
+	
+	<insert id="insertEstimateAB" parameterType="com.yuhannci.erp.model.db.Purchase_E_ab" >
+	
+		insert into purchase_estimate_before (	
+									estimate_request_id, 
+									job_order_id, 
+									job_purchase_id, 
+									partner_id, 
+									reg_date, 
+									description, 
+									maker, 
+									model_no, 
+									material, 
+									quantity, 
+									reg_user, 
+									comment,
+									stockId)
+			values 
+			
+			( #{estimateRequestId}, #{jobOrderId},
+						#{jobPurchaseId},
+						#{partnerId}, now(), 
+						#{description}, 
+						#{maker}, #{modelNo}, 
+						#{material}, #{quantity}, #{regUser}, #{comment}, #{stockId})
+			
+	</insert>
+	
+	
+	<insert id="insertIssueAB" parameterType="com.yuhannci.erp.model.db.Purchase_I_ab" >
+	
+		insert into purchase_issue_before (	
+									issue_request_id, 
+									job_order_id, 
+									job_purchase_id, 
+									partner_id,
+									estimate_request_id,
+									model_no,  
+									reg_date, 
+									receive_date, 
+									reg_user, 
+									issue_price, 
+									quantity, 
+									issue_type,
+									maker,
+									stockId,
+									ab_quantity)
+			values 
+			
+			( #{issueRequestId}, 
+			  #{jobOrderId},
+			  #{jobPurchaseId},
+			  #{partnerId}, 
+			  #{estimateRequestId}, 
+			  #{modelNo}, 
+			  now(),
+			  #{receiveDate}, 
+			  #{regUser}, 
+			  #{issuePrice}, 
+			  #{quantity}, 
+			  #{issueType},
+			  #{maker},
+			  #{stockId},
+			  #{abQuantity})
+			
+	</insert>
+	
+	<select id="selectPurchaseList" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPurchase">
+	
+		select *,
+			(select device from job_order where job_order.id = job_purchase.job_order_id) as device,
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = job_purchase.job_order_id) as job_order_no,
+			(select partner_name from job_partner where job_partner.id = job_purchase.partner_id) as partnerName
+		 from job_purchase
+		where deleted = 'N'
+		<if test='partnerId != null and partnerId != "" and partnerId != " "'>
+				and partner_id = #{partnerId}
+		</if>
+		<if test='maker != null and maker != "" and maker != " "'>
+				and maker = #{maker}
+		</if>
+		<if test='desc != null and desc != "" and desc != " "'>
+				and description like concat('%', #{desc}, '%')
+		</if>
+		<if test='modelNo != null and modelNo != "" and modelNo != " "'>
+				and model_no like concat('%', #{modelNo}, '%')
+		</if>
+		<if test='unitNo != null and unitNo != "" and unitNo != " "'>
+				and unit_no = #{unitNo}
+		</if>
+		
+		order by reg_date DESC
+	
+	</select>
+	
+	
+	<select id="selectJobPurchaseHistoryAB" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPurchaseHistory">
+	
+		select * from job_purchase_history_before_issue
+	
+	</select>
+	
+	
+	<select id="selectEstimateAB" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.Purchase_E_ab">
+	
+		select * from purchase_estimate_before
+	
+	</select>
+	
+	<select id="selectIssueAB" resultType="com.yuhannci.erp.model.db.Purchase_I_ab">
+	
+		select * from purchase_issue_before
+	
+	</select>
+	
+	<select id="selectstock" parameterType="String" resultType="com.yuhannci.erp.model.db.stock">
+	
+		select * from stock where model_no like concat(#{modelNo}, '%') and deleted = 'N'
+	
+	</select>
+	
+	<select id="selectHistory" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPurchaseHistory">
+	
+		select *
+		 from job_purchase_history
+		where job_purchase_id = #{jobPurchaseId} and request_id = #{requestId};
+	
+	</select>
+	
+	<select id="selectModelList" parameterType="HashMap" resultType="com.yuhannci.erp.model.ModelInfo">
+	
+		select 
+			model_no, maker, (select partner_name from job_partner where job_partner.id = job_purchase.partner_id) as provider
+		from job_purchase
+		where
+			deleted = 'N' 
+			<choose>
+				<when test="category == 'model' ">
+					and model_no like concat('%', #{keyword}, '%')
+				</when>
+				<when test="category == 'maker'">
+					and maker like concat('%', #{keyword}, '%')
+				</when>
+				<when test="category == 'provider'">
+					and provider like concat('%', #{keyword}, '%')
+				</when>
+				<when test="keyword != null">
+				and (
+					model_no like concat('%', #{keyword}, '%') or
+					maker like concat('%', #{keyword}, '%') or
+					provider like concat('%', #{keyword}, '%')
+					)
+				</when>
+			</choose>
+		
+		group by model_no, maker, provider;
+	
+	</select>
+	
+	<update id="updatePurchaseEntry" parameterType="com.yuhannci.erp.model.db.JobPurchase" >
+	
+		update job_purchase set
+			model_no = #{modelNo},
+			maker = #{maker},
+			<!-- provider = #{provider}, -->
+			<if test="partnerId != null">
+			partner_Id = #{partnerId},
+			</if>
+			quantity = #{quantity},
+			spare = #{spare},
+			code = #{code},
+			comment = #{comment},
+			remark = #{remark}
+		where
+			id = #{id}
+				
+	</update>
+	
+	<update id="updatePurchaseEntryDeleted" parameterType="HashMap">
+	
+		update job_purchase set
+			deleted = 'Y',
+			delete_reason = #{deleteReason},
+			delete_user_id = #{deleteUserId}
+		where
+			id = #{jobPurchaseId}
+	
+	</update>
+	
+	<insert id="insertJobPurchaseHistoryReal" parameterType="com.yuhannci.erp.model.db.JobPurchaseHistory" >
+	
+		insert into job_purchase_history (job_purchase_id, 
+										  request_id, 
+										  request_type, 
+										  model_no,
+										  maker, 
+										  estimated_price, 
+										  issue_date, 
+										  issue_price, 
+										  order_quantity, 
+										  stock_use_quantity, 
+										  stock_id, 
+										  receive_date)
+		values (#{jobPurchaseId}, 
+		        #{requestId}, 
+		        #{requestType}, 
+		        #{modelNo}, 
+		        #{maker}, 
+		        #{estimatedPrice}, 
+		        now(), 
+		        #{issuePrice}, 
+		        #{orderQuantity}, 
+		        #{stockUseQuantity}, 
+		        #{stockId}, 
+		        #{receiveDate})
+			
+	</insert>
+	
+	
+	<insert id="insertEstimateReal" parameterType="com.yuhannci.erp.model.db.Purchase_E_ab" >
+	
+		insert into purchase_estimate (estimate_request_id, 
+										  job_order_id, 
+										  job_purchase_id, 
+										  partner_id,
+										  reg_date, 
+										  description, 
+										  maker, 
+										  model_no, 
+										  material, 
+										  quantity, 
+										  reg_user, 
+										  comment,
+										  stockId)
+		values (#{estimateRequestId}, 
+		        #{jobOrderId}, 
+		        #{jobPurchaseId}, 
+		        #{partnerId}, 
+		        now(), 
+		        #{description}, 
+		        #{maker}, 
+		        #{modelNo}, 
+		        #{material}, 
+		        #{quantity}, 
+		        #{regUser},
+		        #{comment},
+		        #{stockId})
+			
+	</insert>
+	
+	<insert id="insertIssueReal" parameterType="com.yuhannci.erp.model.db.Purchase_I_ab" >
+	
+		insert into purchase_issue (	  issue_request_id, 
+										  job_order_id, 
+										  job_purchase_id, 
+										  partner_id,
+										  estimate_request_id, 
+										  model_no, 
+										  reg_date, 
+										  receive_date, 
+										  reg_user,
+										  issue_price, 
+										  quantity, 
+										  issue_type,
+										  maker)
+		values (#{issueRequestId}, 
+		        #{jobOrderId}, 
+		        #{jobPurchaseId}, 
+		        #{partnerId}, 
+		        #{estimateRequestId}, 
+		        #{modelNo},
+		        now(), 
+		        #{receiveDate}, 
+		        #{regUser}, 
+		        #{issuePrice}, 
+		        #{quantity}, 
+		        #{issueType},
+		        #{maker})
+			
+	</insert>
+	
+	<update id="UpdateJobPurchaseHistoryStage" parameterType="HashMap">
+	
+		update job_purchase set
+			order_request_id = #{orderRequestId},
+			order_requested_when = now(),
+			order_request_user_id = #{orderRequestUserId},
+			stage = 'P'
+			
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="UpdateStageP" parameterType="HashMap">
+	
+		update job_purchase set
+			order_request_id = #{IssueRequestId},
+			order_requested_when = now(),
+			order_request_user_id = #{orderRequestUserId},
+			stage = 'P',
+			model_no = #{modelNo},
+			maker = #{maker},
+			partner_id = #{partnerId}
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="UpdateStageE" parameterType="HashMap">
+	
+		update job_purchase set
+			
+			stage = 'E'
+			
+		where
+			id = #{id}
+	
+	</update>
+	
+	<delete id="deleteABHistory">
+		
+		delete from purchase_estimate_before
+		
+	</delete>
+	
+	<delete id="deletePuchaseEstimateAB">
+		
+		delete from purchase_estimate_before
+		
+	</delete>
+	
+	<delete id="deltePurchaseIssueAB">
+		
+		delete from purchase_issue_before;
+		
+	</delete>
+	
+	<update id="UpdateStockabQty" parameterType="HashMap">
+		update stock
+		
+		set 
+		
+		ab_quantity = #{stockUseQuantity}
+
+		where id = #{stockId};
+
+	</update>
+	
+	<update id="deleteIssueList" parameterType="HashMap">
+		
+		update job_purchase set
+		deleted = 'Y',
+		delete_reason = #{deleteReason},
+		delete_user_id = #{deleteUserId}
+		
+		where
+		id = #{id}
+		
+		
+	</update>
+	
+	<select id="innerstockListModel" resultType="com.yuhannci.erp.model.InnerStockModel">
+		select
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+   		(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+   		count(*) as count, d.stage,
+   		h.*
+   		from 
+   		purchase_issue h 
+		inner join job_purchase d 
+		on d.deleted ='N' and d.stage= #{stage} and d.id = h.job_purchase_id
+		where h.cancle = 'N'
+		and (select current_stage from job_order where id = d.job_order_id) != 'F'
+	
+		<if test='partnerId != null and partnerId != "" and partnerId != " "'>
+				and h.partner_id = #{partnerId}
+		</if>
+		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and h.reg_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and h.reg_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and h.reg_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		group by issue_request_id, job_order_id
+		order by job_order_id
+	
+	</select>
+	
+	<select id="viewInsertstock" parameterType="HashMap" resultType="com.yuhannci.erp.model.innerstockListModel">
+	
+		select
+     	(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+     	(select partner_name from job_partner where job_partner.id = d.partner_id) as partnerName,
+     	d.unit_no ,d.description, d.quantity,d.warehousing_quantity ,h.*
+		from job_purchase_history h
+		inner join job_purchase d 
+		on h.job_purchase_id = d.id
+		where d.deleted ='N' and d.stage= 'F' and h.request_type = 'R' and d.id = #{jobPurchaseId} and h.request_id = #{requestId}
+		order by d.partner_id, d.job_order_id 
+
+	</select>
+	
+	<select id="stockIsnull" parameterType="String" resultType="com.yuhannci.erp.model.db.stock">
+		select *from stock where model_no = #{model_no} and deleted = 'N'
+	</select>
+	<select id="selectStockQt" parameterType="String" resultType="int">
+		select quantity from stock where model_no = #{model_no} and deleted = 'N'
+	</select>
+	<select id="selectStockQtfromID" parameterType="Long" resultType="int">
+		select quantity from stock where id = #{stockID}
+	</select>
+	
+	<insert id="insertStockList" parameterType="com.yuhannci.erp.model.db.stock">
+		insert into stock (job_purchase_id, request_id, model_no, maker, description, issue_price, quantity, ab_quantity, out_quantity, deleted, final_date)
+		values (#{jobPurchaseId}, #{requestId} ,#{modelNo} ,#{maker} ,#{description} ,#{issuePrice} ,#{quantity}, 
+		#{abQuantity}, #{outQuantity}, #{deleted}, now())
+	</insert>
+	<select id="stockIdSelect" parameterType="String" resultType="Long">
+		select id from stock where model_no = #{model_no}
+	</select>
+	<insert id="StockInHistoryIns" parameterType="com.yuhannci.erp.model.db.stockInHistroy">
+		insert into stock_in_histroy (stockID, registration_date, registration_user, registration_reason, stock_able, in_quantity)
+		values (#{stockID}, now() ,#{registrationUser} ,#{registrationReason} ,#{stockAble} ,#{inQuantity})
+	</insert>
+	
+	<update id="UpdateStock" parameterType="HashMap">
+		update stock
+		set quantity = #{quantity},
+			final_date = now()
+		where model_no = #{modelNo} and deleted = 'N'
+	
+	</update>
+	
+	<update id="UpdateStockfromID" parameterType="HashMap">
+		update stock
+		set quantity = #{quantity},
+		final_date = now()
+		where id = #{stockID}
+	
+	</update>
+	
+	<update id="UpdateStagePurchaseO" parameterType="Long">
+		update job_purchase
+		set stage = 'O'
+		where id = #{jobPurchaseId}
+	
+	</update>
+	
+	<select id="stockRealListSelect" parameterType="HashMap" resultType="com.yuhannci.erp.model.stockRealListModel">
+		select d.*
+      from stock d
+      where 
+			(d.quantity-IFNULL(d.out_quantity,0)) > 0
+			and deleted='N'
+		
+		<if test='kind == "B"'>
+			and d.ab_quantity is null
+		</if>
+		<if test='CodeNO != null and CodeNO != "" and CodeNO != " "'>
+			and d.id = #{CodeNO}
+		</if>
+		<if test='modelNo != null and modelNo != "" and modelNo != " "'>
+				and d.model_no like concat(#{modelNo}, '%')
+		</if>
+		<if test='maker != null and maker != "" and maker != " "'>
+				and d.maker like concat('%', #{maker}, '%')
+		</if>
+		<if test='desc != null and desc != "" and desc != " "'>
+				and d.description like concat('%', #{desc}, '%')
+		</if>
+		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.final_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.final_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.final_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		order by d.id DESC
+
+	</select>
+	
+	<select id="stockRealListSelectId" parameterType="Long" resultType="com.yuhannci.erp.model.stockRealListModel">
+	select d.*
+      from stock d
+
+		where d.id=#{id}
+		
+	</select>
+	
+	<insert id="outStock" parameterType="com.yuhannci.erp.model.db.stockOutHistory" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into stock_out_histroy (stockID, pass_date, pass_user, receive_dept, out_quantity, out_reason, job_order_id)
+		values (#{stockID}, #{passDate} ,#{passUser} ,#{receiveDept} ,#{outQuantity} ,#{outReason}, #{jobOrderId})
+	</insert>
+	
+	<update id="stockOutUpdate" parameterType="HashMap">
+		update stock
+		set out_quantity = #{outQuantity},
+			final_date = now()
+		where id = #{id}
+	
+	</update>
+	
+	<update id="stockOutUpdateAB" parameterType="HashMap">
+		update stock
+		set ab_quantity = (ab_quantity - #{outQuantity}),
+		out_quantity = (out_quantity + #{outQuantity}),
+		final_date = now()
+		where id = #{id}
+	
+	</update>
+	
+	<select id="selectStockOutRealList" resultType="com.yuhannci.erp.model.stockRealOutModel">
+		select
+		(select name from user where id = h.receiver_usr) as receiver_usr,
+		(select dept_name from dept_data where id = h.receive_dept) as dept_name,
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = h.job_order_id) as orderNo,
+		d.id as did, d.maker, d.model_no, d.description, d.out_quantity, h.*
+		from stock_out_histroy h
+		inner join stock d
+		on h.stockID = d.id
+		<where>
+		<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+			(select order_no_base from job_order where id = h.job_order_id) like concat('%', #{orderNoBase}, '%')
+		</if>
+		<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+			and (select order_no_extra from job_order where id = h.job_order_id) like concat('%', #{orderNoExtra}, '%')
+		</if>
+		
+		<if test='CodeNO != null and CodeNO != "" and CodeNO != " "'>
+			and d.id = #{CodeNO}
+		</if>
+		<if test='modelNo != null and modelNo != "" and modelNo != " "'>
+				and d.model_no like concat('%', #{modelNo}, '%')
+		</if>
+		<if test='maker != null and maker != "" and maker != " "'>
+				and d.maker = #{maker}
+		</if>
+		<if test='desc != null and desc != "" and desc != " "'>
+				and d.description like concat('%', #{desc}, '%')
+		</if>
+		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and h.pass_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and h.pass_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and h.pass_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+			
+		
+		</where>
+		
+		order by h.pass_date DESC
+	</select>
+	
+	<select id="listoutpopdetail" parameterType="Long" resultType="com.yuhannci.erp.model.stockRealOutModel">
+		select * 
+		
+		from stock_out_histroy 
+		
+		where id = #{id}
+		
+	</select>
+	
+	<select id="selectTypeCode" resultType="com.yuhannci.erp.model.db.JobPartnerTypeNew">
+		select * from job_partner_type where type_kind='0';
+	</select>
+	
+	<select id="selectTypeKind" parameterType="String" resultType="com.yuhannci.erp.model.db.JobPartnerTypeNew">
+		<![CDATA[
+		select * from job_partner_type where type_code=#{param} and type_kind <> '0';
+		]]>
+	</select>
+	
+	<select id="selectBillingAfter" resultType="com.yuhannci.erp.model.billingMonth">
+		select id from billing_after_data;
+	</select>
+
+	<select id="selectBillingDay" resultType="com.yuhannci.erp.model.billingDay">
+		select id from billing_day_data;
+	</select>
+	
+	<insert id="insertStatement" parameterType="com.yuhannci.erp.model.StatementIns" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+		insert into statement_of_account (issue_date, partner_type_kind, partner_id, reg_datetime, request_id, job_order_id)
+		values ('0001-01-01', 'P', #{partnerId}, now(), #{requestId}, #{jobOrderId});
+	</insert>
+	
+	<insert id="insertStatementDetail" parameterType="com.yuhannci.erp.model.StatementDetail">
+	
+		insert into statement_of_account_detail (issue_id, job_purchase_id)
+		values (#{issueId},#{jobPurchaseId})
+	
+	</insert>
+	
+	<select id="statementInsPage" resultType="com.yuhannci.erp.model.StatementInsList">
+		
+		select 
+				d.*,
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = h.job_order_id) as orderNo,
+			(select partner_name from job_partner where id=d.partner_id) as partnerName,
+			(select count(id) from statement_of_account_detail where issue_id = d.id) as count,
+			h.order_requested_when, h.warehousing_date
+			from job_purchase h
+			inner join statement_of_account d
+			on h.order_request_id = d.request_id and h.job_order_id = d.job_order_id and d.partner_type_kind = 'P' and d.issue_date = '0001-01-01'
+
+			
+			
+				<if test='PartnerCode != null and PartnerCode != "" and PartnerCode != " "'>
+					and d.partner_id = #{PartnerCode}
+				</if>
+				<choose>
+					<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+						and h.order_requested_when between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+					</when>
+					<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+						<![CDATA[
+							and h.order_requested_when &gt; #{convertedDesignDateBegin}
+						]]> 
+					</when>
+					<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+						and h.order_requested_when &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+					</when>
+		
+				</choose>
+				
+				group by d.id, h.job_order_id
+			
+	</select>
+	
+	<select id="surchPartnerCode" resultType="String" parameterType="String">
+		select id from job_partner where partner_name=#{partnerName}
+	</select>
+	
+	<select id="statementInspop" resultType="com.yuhannci.erp.model.StatementInsPop" parameterType="Long">
+		select   
+         d.*,
+         (select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = (select job_order_id from statement_of_account where id = d.issue_id)) as job_order_no,
+         (select partner_name from job_partner where id=(select partner_id from statement_of_account where id = d.issue_id)) as partnerName,
+         (select quantity from purchase_issue where job_purchase_id = d.job_purchase_id) as orderQuantity,
+         (select issue_price from purchase_issue where job_purchase_id = h.id) as issuePrice,
+         h.unit_no, h.description, h.warehousing_date, h.warehousing_quantity, h.model_no, h.maker
+         from statement_of_account_detail d
+            inner join job_purchase h
+            on h.order_request_id = (select request_id from statement_of_account where id=d.issue_id) and h.id = d.job_purchase_id
+            where d.issue_id = #{id}
+            order by h.unit_no
+			
+	</select>
+	
+	
+	<select id="getRequestIdfromstatement" resultType="String" parameterType="Long">
+		select request_id from statement_of_account where id =#{issueId}
+	</select>
+	
+	<select id="getJobOrderIdfromstatement" resultType="Long" parameterType="Long">
+		select job_order_id from statement_of_account where id =#{issueId}
+	</select>
+	
+	<select id="getPurchaseIdfromstatementDetail" resultType="Long" parameterType="Long">
+		select job_purchase_id from statement_of_account_detail where id =#{id}
+	</select>
+	
+	<update id="upDatePurchaseStatementA" parameterType="Long">
+		update job_purchase 
+		set
+		statement_type = 'A'
+
+		where
+		id = #{jobPurchaseId}
+	</update>
+	
+	
+	<update id="upDatePurchaseIssueStatementY" parameterType="HashMap">
+		update purchase_issue 
+		set
+		statement = 'Y'
+
+		where
+		issue_request_id = #{requestId} and job_order_id = #{jobOrderId} and job_purchase_id = #{jobPurchaseId}
+	</update>
+	
+	<update id="statementUpdate" parameterType="com.yuhannci.erp.model.StatementUpdate">
+		update statement_of_account 
+		set
+		status = #{status},
+		quantity = #{quantity},
+		price = #{price},
+		buy_kind = #{buyKind},
+		reg_date = #{regDate}
+		
+		where
+		id = #{id}
+	</update>
+
+	<update id="StatementofUpdate" parameterType="HashMap">
+		update statement_of_account 
+		set 
+		issue_date = #{issueDateR},
+		reg_datetime = now(),
+		sum_price = #{sumPrice},
+		nego_price = #{negoPrice},
+		buy_kind = #{buyKind}
+		
+		where
+		id = #{issueId}
+	</update>
+	
+	<update id="StatementofDetailUpdate" parameterType="HashMap">
+		update statement_of_account_detail 
+		set 
+		issued_item_name = #{issuedItemName},
+		issued_quantity = #{issuedQuantity},
+		issued_unit_price = #{issuedUnitPrice}
+	
+		where
+		id = #{id}
+	</update>
+	
+	<select id="statementListPage" resultType="com.yuhannci.erp.model.statementList">
+		
+		select 
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = h.job_order_id) as job_order_no,
+			(select partner_name from job_partner where id=h.partner_id) as partnerName,
+			(select count(id) from statement_of_account_detail where issue_id = h.id) as count,
+		 	h.request_id, h.id, h.sum_price, h.issue_date
+
+		from statement_of_account h
+			inner join statement_of_account_detail d
+			on h.id = d.issue_id and h.partner_type_kind = 'P' and h.issue_date != '0001-01-01'
+			
+				
+			<where>	
+				<if test='PartnerCode != null and PartnerCode != "" and PartnerCode != " "'>
+					and h.partner_id = #{PartnerCode}
+				</if>
+				
+				<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+					and (select order_no_base from job_order where job_order.id = (select job_order_id from job_purchase where id=d.job_purchase_id)) 
+					= #{orderNoBase}
+				</if>
+				
+				<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+					and (select order_no_extra from job_order where job_order.id = (select job_order_id from job_purchase where id=d.job_purchase_id)) 
+					= #{orderNoExtra}
+				</if>
+				
+				<choose>
+					<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+						and h.issue_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+					</when>
+					<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+						<![CDATA[
+							and h.issue_date &gt; #{convertedDesignDateBegin}
+						]]> 
+					</when>
+					<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+						and h.issue_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+					</when>
+		
+				</choose>
+			
+			</where>
+			
+			group by h.id
+	</select>
+	
+	<select id="userSurch" resultType="String">
+		select name from user;
+	</select>
+	
+	<select id="userSurchwhereDept" parameterType="String" resultType="String">
+		select name from user where dept_code = #{receiveDept};
+	</select>
+	
+	<select id="userCodeSurch" resultType="String">
+		select id from user where name=#{name};
+	</select>
+	
+	<select id="userNameSurch" resultType="String">
+		select name from user where id=#{id};
+	</select>
+	
+	
+
+	
+	<select id="selectJobProcessList" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobPurchaseAssembleList">
+		select	pu.id,
+				pu.job_order_id,
+				ord.order_type,
+				ord.order_no_base,
+				ord.order_no_extra,
+				FN_GetDisplayOrderNo(ord.order_type,ord.order_no_base,ord.order_no_extra) as order_full_no,
+				FN_GetUserName(ord.design_user_id) as drawing_user_name,
+				pu.unit_no,
+				pu.description,
+				pu.model_no,
+				pu.maker,
+				pu.partner_id,
+				FN_GetPartnerName(pu.partner_id) as partner_name,
+				pu.quantity,
+				pu.spare,
+				pu.code,
+				pu.comment,
+				pu.remark,
+				pu.stage,
+				FN_GetTypeName('job_purchase', pu.stage) as stage_text,
+				FN_GetUserName(pu.order_request_user_id) as order_user_name,
+				hs.issue_date,
+				hs.order_quantity,
+				hs.stock_use_quantity,
+				pu.wareHousing_quantity,
+				pu.wareHousing_date,
+				pu.pass_date,
+				pu.receiver_usr
+		from job_order as ord LEFT JOIN job_purchase as pu
+			ON ord.id=pu.job_order_id
+			LEFT OUTER JOIN job_purchase_history as hs
+			ON pu.id=hs.job_purchase_id AND pu.order_request_id = hs.request_id
+
+		<where>
+        	pu.job_order_id = #{orderId}
+			<if test="searchType != null and searchType eq 1">
+				and (dw.assembly_transfer_to is null or length(dw.assembly_transfer_to)!=5)
+			</if>
+			<if test="searchType != null and searchType eq 2">
+				and length(dw.assembly_transfer_to)=5
+			</if>
+		</where>
+	</select>
+	
+	<select id="selectDatePID" parameterType="Long" resultType="com.yuhannci.erp.model.StatementPartner">
+		select issue_date, partner_id from statement_of_account where id=#{id}
+	</select>
+	
+	<select id="selectPartner" parameterType="String" resultType="com.yuhannci.erp.model.StatementListPartner">
+		select corporate_num, corporate_phone, partner_name from job_partner where id=#{id}
+	</select>
+	
+	<select id="statementListPop" parameterType="Long" resultType="com.yuhannci.erp.model.StatementListPop">
+	
+		select 
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = h.job_order_id) as job_order_no,
+			(select description from job_purchase where id=d.job_purchase_id) as description,
+			(select model_no from job_purchase where id=d.job_purchase_id) as modelNo,
+		 	d.issued_quantity, d.issued_unit_price
+		from statement_of_account h
+			inner join statement_of_account_detail d
+			on h.id = d.issue_id 
+			where d.issue_id = #{id}
+	
+	</select>
+	
+	<select id="statementListSum" parameterType="Long" resultType="Long">
+		select sum_price from statement_of_account where id = #{id}
+		
+	</select>
+	
+	<select id="statementListNego" parameterType="Long" resultType="Long">
+		select nego_price from statement_of_account where id = #{id}
+		
+	</select>
+	
+	<select id="selectOrderIdFrompurchase" parameterType="Long" resultType="Long">
+		select job_order_id from job_purchase where id = #{id}
+		
+	</select>
+	
+	<select id="selectPurchaseIdFromstock" parameterType="Long" resultType="Long">
+	select job_purchase_id
+      from stock 
+
+		where id=#{id}
+		
+	</select>
+	
+	<select id="deptNameSurch" parameterType="String" resultType="String">
+		select dept_name from dept_data where id = #{id}
+		
+	</select>
+	
+	<select id="searchOrderNo" resultType="com.yuhannci.erp.model.StockListOrderNo">
+	
+		select id, FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as job_order_no
+			from job_order 
+			where current_stage in('A','S')
+			order by job_order_no
+		
+	</select>
+	
+	<select id="serachPartnerState" resultType="com.yuhannci.erp.model.SerachPartnerState">
+	
+		select
+
+			d.partner_id, d.job_order_id, sum(sum_price) as sum,
+			
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+
+			(select partner_name from job_partner where id = d.partner_id) as partnerName,
+			
+			count(DISTINCT d.job_order_id) as countOrder
+
+			from statement_of_account as d
+
+		where d.partner_type_kind = 'P' and d.issue_date != '0001-01-01'
+		
+		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.issue_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.issue_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.issue_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		group by d.partner_id, d.job_order_id
+		
+		order by d.partner_id
+		
+		
+	
+	</select>
+	
+	
+	<select id="serachCountPartnerState" resultType="com.yuhannci.erp.model.SearchCountPartnerState">
+	
+		select d.partner_id, count(d.partner_id) as countPartner,
+		(select partner_name from job_partner where id = d.partner_id) as partnerName
+		from statement_of_account as d
+
+		where d.partner_type_kind = 'P' and d.issue_date != '0001-01-01'
+		
+		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.issue_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.issue_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.issue_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		group by d.partner_id
+		
+		order by d.partner_id
+		
+	
+	</select>
+	
+	<select id="serachOrderState" resultType="com.yuhannci.erp.model.SearchOrderState">
+	
+		select
+		
+			d.job_order_id, d.partner_id, sum(sum_price) as sum,
+			
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+
+			(select partner_name from job_partner where id = d.partner_id) as partnerName,
+			
+			count(DISTINCT d.partner_id) as countPatner
+		
+			from statement_of_account as d
+
+
+		where d.partner_type_kind = 'P' and d.issue_date != '0001-01-01'
+		
+		
+		<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+			and (select order_no_base from job_order where id = d.job_order_id) = #{orderNoBase}
+		</if>
+		<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+			and (select order_no_extra from job_order where id = d.job_order_id) = #{orderNoExtra}
+		</if>
+		
+		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.issue_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.issue_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.issue_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		group by d.partner_id, d.job_order_id
+		
+		order by d.job_order_id
+		
+		
+	
+	</select>
+	
+	
+	<select id="serachCountOrderState" resultType="com.yuhannci.erp.model.SearchCountOrderState">
+	
+		select 
+		d.job_order_id, count(d.job_order_id) as countOrderNo,
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		(select current_stage from job_order where id = d.job_order_id) as currnet
+		from statement_of_account as d
+		
+		where d.partner_type_kind = 'P' and d.issue_date != '0001-01-01'
+		
+		
+		<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+			and (select order_no_base from job_order where id = d.job_order_id) = #{orderNoBase}
+		</if>
+		<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+			and (select order_no_extra from job_order where id = d.job_order_id) = #{orderNoExtra}
+		</if>
+		
+		<choose>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd != null">
+				and d.issue_date between #{convertedDesignDateBegin} and date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+			<when test="convertedDesignDateBegin != null and convertedDesignDateEnd == null">
+				<![CDATA[
+					and d.issue_date &gt; #{convertedDesignDateBegin}
+				]]> 
+			</when>
+			<when test="convertedDesignDateBegin == null and convertedDesignDateEnd != null">
+				and d.issue_date &lt; date_add(#{convertedDesignDateEnd}, interval 1 day)
+			</when>
+		
+		</choose>
+		
+		group by d.job_order_id
+		
+		order by d.job_order_id
+		
+	
+	</select>
+	
+	<select id="surchAllPartner" resultType="com.yuhannci.erp.model.db.SurchAllPartner">
+	
+		select DISTINCT partner_id,
+		
+			(select partner_name from job_partner where id = partner_id) as partnerName
+			
+		from statement_of_account
+		
+		where partner_type_kind = 'P' and issue_date != '0001-01-01'
+		
+		order by partner_id
+	
+		
+	
+	</select>
+	
+	
+	<select id="surchAllOrder" resultType="com.yuhannci.erp.model.db.SurchAllOrder">
+	
+		select DISTINCT job_order_id,
+		
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = job_order_id) as job_order_no
+			
+		from statement_of_account
+		
+		where partner_type_kind = 'P' and issue_date != '0001-01-01'
+		
+		order by job_order_id;
+	
+		
+	
+	</select>
+	
+	<select id="janSum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-01-01' and '2020-01-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	<select id="febSum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-02-01' and '2020-02-28'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	<select id="marSum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-03-01' and '2020-03-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	<select id="aprSum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-04-01' and '2020-04-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	<select id="maySum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-05-01' and '2020-05-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	<select id="junSum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-06-01' and '2020-06-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	<select id="julSum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-07-01' and '2020-07-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	<select id="augSum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-08-01' and '2020-08-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	<select id="sepSum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-09-01' and '2020-09-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	<select id="octSum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-10-01' and '2020-10-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	<select id="novSum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-11-01' and '2020-11-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	<select id="decSum" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-12-01' and '2020-12-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by partner_id
+			
+	
+	</select>
+	
+	
+	<select id="janSumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-01-01' and '2020-01-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="febSumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-02-01' and '2020-02-28'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="marSumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-03-01' and '2020-03-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="aprSumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-04-01' and '2020-04-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="maySumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-05-01' and '2020-05-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="junSumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-06-01' and '2020-06-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="julSumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-07-01' and '2020-07-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="augSumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-08-01' and '2020-08-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="sepSumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-09-01' and '2020-09-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="octSumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-10-01' and '2020-10-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="novSumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-11-01' and '2020-11-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="decSumOrder" resultType="com.yuhannci.erp.model.SumPriceState">
+	
+		select
+
+			job_order_id, partner_id, sum(sum_price) as sum
+	
+			from statement_of_account
+	
+			where issue_date between '2020-12-01' and '2020-12-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01'
+			
+			group by job_order_id
+			
+	
+	</select>
+	
+	<select id="janCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-01-01' and '2020-01-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="febCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-02-01' and '2020-02-28'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="marCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-03-01' and '2020-03-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="aprCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-04-01' and '2020-04-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="mayCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-05-01' and '2020-05-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="junCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-06-01' and '2020-06-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="julCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-07-01' and '2020-07-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="augCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-08-01' and '2020-08-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="sepCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-09-01' and '2020-09-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="octCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-10-01' and '2020-10-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="novCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-11-01' and '2020-11-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="decCountOrder" resultType="int">
+	
+			select
+
+			count(DISTINCT job_order_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-12-01' and '2020-12-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="janCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-01-01' and '2020-01-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="febCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-02-01' and '2020-02-28'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="marCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-03-01' and '2020-03-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="aprCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-04-01' and '2020-04-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="mayCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-05-01' and '2020-05-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="junCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-06-01' and '2020-06-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="julCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-07-01' and '2020-07-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="augCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-08-01' and '2020-08-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="sepCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-09-01' and '2020-09-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="octCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-10-01' and '2020-10-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="novCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-11-01' and '2020-11-30'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<select id="decCountPartner" resultType="int">
+	
+			select
+
+			count(DISTINCT partner_id) as count
+	
+			from statement_of_account
+	
+			where issue_date between '2020-12-01' and '2020-12-31'
+	
+			and partner_type_kind = 'P' and issue_date != '0001-01-01';
+	
+	
+	</select>
+	
+	<insert id="insertJobPurchasefromRobin" parameterType="com.yuhannci.erp.model.db.JobPurchaseDB">
+		insert into job_purchase
+		(
+		job_order_id,
+		customer_id,
+		reg_date,
+		description,
+		model_no,
+		maker,
+		partner_id,
+		quantity,
+		stage,
+		deleted,
+		statement_type,
+		robin_request_date,
+		round_robinYN)
+		
+		values
+		(
+		#{jobOrderId},
+		#{customerId},
+		now(),
+		#{description},
+		#{modelNo},
+		#{maker},
+		#{partnerId},
+		#{quantity},
+		'R',
+		'N',
+		'X',
+		#{robinRequestDate},		
+		'Y')
+						
+		
+	
+	</insert>
+	
+	<delete id="deletedTrashData">
+		delete from purchase_issue_before;
+
+	</delete>
+	
+	<delete id="deletedTrashData2">
+		delete from purchase_estimate_before;
+
+	</delete>
+	
+	<update id="deletedStockYN" parameterType="Long">
+		update stock
+		set 
+		deleted = 'Y',
+		final_date = now()
+		where id = #{id}
+	
+	</update>
+	
+	<insert id="addInsStockfromPurchase" parameterType="com.yuhannci.erp.model.StockIns" useGeneratedKeys="true" keyProperty="id" keyColumn="id"> 
+		insert into stock
+		(
+		model_no,
+		maker,
+		description,
+		issue_price,
+		quantity,
+		final_date)
+		
+		values
+		(
+		#{modelNo},
+		#{maker},
+		#{description},
+		#{issuePrice},
+		#{quantity},
+		now())
+						
+		
+	
+	</insert>
+	
+	
+	<select id="sumStockAllList" resultType="Long">
+	
+			select sum((IFNULL(issue_price,0))*(IFNULL(quantity,0)-IFNULL(out_quantity,0))) from stock;
+	
+	
+	</select>
+	
+	<update id="setStockListUdate" parameterType="com.yuhannci.erp.model.StockIns">
+		update stock
+		set 
+		model_no = #{modelNo},
+		maker = #{maker},
+		description = #{description},
+		quantity = #{quantity},
+		issue_price = #{issuePrice},
+		final_date = now()
+		where id = #{id}
+	
+	</update>
+	
+	<select id="purcahseSelectHisDetailList" resultType="com.yuhannci.erp.model.db.PurchaseHistorySelectDetail">
+		
+		select 
+
+	 (CASE WHEN stage = 'R' THEN '구매등록'
+ 		 WHEN stage = 'E' THEN '견적요청중'
+		 WHEN stage = 'P' THEN '발주완료'
+		 WHEN stage = 'F' THEN '입고완료'
+		 WHEN stage = 'O' THEN '불출완료'
+		 ELSE '전체반품구매재등록'
+	 END) as stage,
+	 description,
+	 model_no,
+	 maker,
+	 unit_no,
+	 (select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = job_order_id) as jobOrderNo,
+	 IFNULL(((IFNULL(quantity,0)) + (IFNULL(spare,0))),0) as qty
+	 
+ 
+ from job_purchase
+		
+		where
+		
+			<choose>
+				<when test="seq != null">
+					id = #{seq}
+				</when>
+				<otherwise>
+					id = 0
+				</otherwise>
+			</choose>
+			
+		
+			order by id desc
+			
+			<if test="length != null and length != -1">
+				limit #{start}, #{length}
+			</if>		
+		
+	</select>
+	
+	<select id="purcahseSelectHisDetailListCount" resultType="Integer">
+		
+		select 
+count(*)
+ from job_purchase
+		
+		where
+		
+			<choose>
+				<when test="seq != null">
+					id = #{seq}
+				</when>
+				<otherwise>
+					id = 0
+				</otherwise>
+			</choose>
+			
+		
+			order by id desc
+			
+		
+	</select>
+	
+	
+	<insert id="stockHisInsAct" parameterType="com.yuhannci.erp.model.StockHIsIns"> 
+		insert into stock_in_histroy
+		(
+		stockID,
+		registration_date,
+		registration_user,
+		in_quantity)
+		
+		values
+		(
+		#{stockID},
+		now(),
+		#{registrationUser},
+		#{inQuantity})
+						
+		
+	
+	</insert>
+	
+	<update id="nonePurchaseUpdate" parameterType="Long">
+		update job_order
+		set 
+		purchase_none = 'Y'
+	
+		where id = #{jobOrderId}
+	
+	</update>
+	
+	<update id="noneNPurchseUpdate" parameterType="Long">
+		update job_order
+		set 
+		purchase_none = 'N'
+	
+		where id = #{jobOrderId}
+	
+	</update>
+	
+	
+	
+
+</mapper>
+ 

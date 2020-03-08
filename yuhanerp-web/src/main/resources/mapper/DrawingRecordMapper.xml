@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.DrawingRecordMapper">
+	<sql id="selectFieldsReport">
+		select job.id
+		, job.order_type
+		, job.customer_id
+		, FN_GetCustomerName(job.customer_id) as customer_name
+		, FN_GetDisplayOrderNo(job.order_type, job.order_no_base, job.order_no_extra) as order_no
+		, job.order_no_base
+		, job.order_no_extra
+		, job.device
+		, job.install_date
+		, job.business_user_id
+		, FN_GetUserName(job.business_user_id) as business_user_name 
+		, job.design_user_id
+		, FN_GetUserName(job.design_user_id) as design_user_name
+		, job.design_progress
+		, job.design_end
+		, count(draw.id) as design_count
+	</sql>
+
+	<select id="selectDrawingReport" parameterType="HashMap" resultType="com.yuhannci.erp.model.DrawingRecord">
+		<include refid="selectFieldsReport"></include>
+		from job_order job inner join job_design_drawing draw on draw.order_id = job.id
+		<where>
+        	job.current_stage not in ('F', 'C') and job.deleted='N'
+			<if test="customerId != null and customerId != ''">
+				and job.customer_id = #{customerId}
+			</if>
+			<if test="orderNoBase != null and orderNoBase != '' ">
+				and job.order_no_base like concat(#{orderNoBase}, '%')
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''">
+				and job.order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="keyword != null and keyword != ''">
+				and device like concat('%', #{keyword}, '%')
+			</if>
+			<choose>
+				<when test="drawingDateFrom != null and drawingDateTo != null">
+					and design_end between #{drawingDateFrom} and #{drawingDateTo}
+				</when>
+				<when test="drawingDateFrom != null and drawingDateTo == null">
+					and design_end >= #{drawingDateFrom}
+				</when>
+				<when test="drawingDateFrom == null and drawingDateTo != null">
+					and design_end &lt; date_add(#{drawingDateTo}, interval 1 day)
+				</when>				
+			</choose>
+		</where>
+		group by job.id						
+	</select>
+
+
+	<select id="selectSingleDrawingReport" parameterType="HashMap" resultType="com.yuhannci.erp.model.DrawingRecord">
+		<include refid="selectFieldsReport"></include>
+		from job_order job inner join job_design_drawing draw on draw.order_id = job.id
+ 		where 
+			draw.order_id = #{orderId}
+	</select>
+
+	<select id="selectJobProcessList" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobProcessList">
+		select dw.id,
+				dw.order_id,
+				dw.order_type,
+				dw.order_no_base,
+				dw.order_no_extra,
+				dw.drawing_no,
+				FN_GetDisplayDrawingNo(dw.order_type, dw.order_no_base, dw.order_no_extra, dw.drawing_no) as drawing_full_no,
+				(select FN_GetUserName(job_order.design_user_id) from job_order where id=dw.order_id) as drawing_user_name,
+				(select install_date from job_order where id=dw.order_id) as install_date,
+				dw.description,
+				dw.material,
+				dw.thermal,
+				dw.postprocessing,
+				dw.quantity,
+				dw.spare,
+				dw.current_stage,
+				FN_GetDrawingCurrentStatus(dw.current_stage) as current_stage_text,
+				dw.work_status,
+				FN_GetTypeName('job_design_drawing', dw.work_status) as work_status_text,
+				FN_GetOutSourceName(dw.work_position, dw.outsourcing_partner_id) as out_source_name,
+				dw.process_completed,
+				dw.process_finish_date,
+				dw.process_finish_plan_date,
+				dw.checking,
+				dw.assembly_transfer_from,
+				FN_GetUserName(dw.assembly_transfer_from) as assembly_tr_from_name,
+				dw.assembly_transfer_to,
+				FN_GetUserName(dw.assembly_transfer_to) as assembly_tr_to_name,
+				dw.assembly_transfer_date,
+				dw.inspect_id,
+				dw.inspect_plan_date,
+				ins.requested_date as inspect_date,
+				ins.result_ok as inspect_result
+		from job_design_drawing as dw LEFT OUTER JOIN job_inspect as ins
+		ON dw.inspect_id=ins.id
+		<where>
+			<if test="orderId != null and orderId &gt; 0">
+        		dw.order_id = #{orderId}
+        	</if>
+			<if test="searchType != null and searchType eq 1">
+				and (dw.assembly_transfer_to is null or length(dw.assembly_transfer_to)!=5)
+			</if>
+			<if test="searchType != null and searchType eq 2">
+				and length(dw.assembly_transfer_to)=5
+			</if>
+			<if test="searchType != null and searchType eq 5">
+				and dw.current_stage='B' and dw.work_status='R' and dw.process_completed='Y'
+			</if>
+		</where>
+	</select>
+	
+
+	<select id="selectDrawingEnteringList" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobProcessList">
+		select dw.id,
+				dw.order_id,
+				dw.order_type,
+				dw.order_no_base,
+				dw.order_no_extra,
+				dw.drawing_no,
+				FN_GetDisplayDrawingNo(dw.order_type, dw.order_no_base, dw.order_no_extra, dw.drawing_no) as drawing_full_no,
+				(select FN_GetUserName(job_order.design_user_id) from job_order where id=dw.order_id) as drawing_user_name,
+				(select install_date from job_order where id=dw.order_id) as install_date,
+				dw.description,
+				dw.material,
+				dw.thermal,
+				dw.postprocessing,
+				dw.quantity,
+				dw.spare,
+				dw.current_stage,
+				FN_GetDrawingCurrentStatus(dw.current_stage) as current_stage_text,
+				dw.work_status,
+				FN_GetTypeName('job_design_drawing', dw.work_status) as work_status_text,
+				FN_GetOutSourceName(dw.work_position, dw.outsourcing_partner_id) as out_source_name,
+				dw.process_completed,
+				dw.process_finish_date,
+				dw.process_finish_plan_date,
+				dw.checking,
+				dw.assembly_transfer_from,
+				FN_GetUserName(dw.assembly_transfer_from) as assembly_tr_from_name,
+				dw.assembly_transfer_to,
+				FN_GetUserName(dw.assembly_transfer_to) as assembly_tr_to_name,
+				dw.assembly_transfer_date,
+				dw.inspect_id,
+				dw.inspect_plan_date,
+				ins.requested_date as inspect_date,
+				ins.result_ok as inspect_result
+		from job_design_drawing as dw LEFT OUTER JOIN job_inspect as ins
+		ON dw.inspect_id=ins.id
+		<where>
+			dw.current_stage='B' and dw.work_status='R' and dw.process_completed='Y'
+			<if test="orderId != null and orderId &gt; 0">
+        		and dw.order_id = #{orderId}
+				<if test='drawingNo != null and drawingNo != ""'>
+					and dw.drawing_no like concat(#{drawingNo}, '%')
+				</if>
+        	</if>
+			<if test='outPartnerId != null and outPartnerId != ""'>
+				and dw.outsourcing_partner_id = #{outPartnerId}
+			</if>
+		</where>
+	</select>
+	
+	
+</mapper>

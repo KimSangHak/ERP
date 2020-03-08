@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.ConceptJobOrderMapper">
+
+	<sql id="selectFields">
+			id
+			, order_date
+			, order_type 
+			
+			, customer_id
+			, FN_GetCustomerName(SRC.customer_id) as customer_name
+			
+			, device
+			
+			, FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) as order_no
+			, order_no_base
+			, order_no_extra
+			
+			, quantity
+
+			, business_user_id
+			, (select name from user where user.id = business_user_id) as business_user_name
+			, design_user_id
+			, (select name from user where user.id = design_user_id) as design_user_name
+			, customer_user
+
+			, note
+
+			, internal_unit_price
+			, estimated_price
+			, negotiated_price
+			
+			, internal_price_file_no
+			, (select hash from registered_file where registered_file.id = internal_price_file_no) as internal_price_file_hash
+			, concept_file_no
+			, (select hash from registered_file where registered_file.id = concept_file_no) as concept_file_hash
+			
+			, current_stage
+			
+			, concept_finish_date
+			
+			, last_modified_when
+			, last_modified_user_id
+			
+			, internal_unit_price_shared_date
+	
+	</sql>
+
+	<select id="findConcept" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.ConceptJobOrder">
+	select 			
+			<include refid="selectFields"></include>
+		from concept_job_order SRC
+		<where>
+			<if test="id != null">
+				id = #{id}
+			</if>
+			<if test="orderNoBase != null">
+				and order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="orderType != null">
+				and order_type = #{orderType}
+			</if>
+		</where>	
+	</select>
+	
+	<select id="selectConcept" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.ConceptJobOrder">
+	
+		select
+			<include refid="selectFields"></include>			
+		from concept_job_order SRC
+		where  order_type = #{orderType}			
+			<choose>
+				<!-- 영업일보 리스트, 등록&수정 용 데이터 -->
+				<when test="activeList == true">
+					<choose>
+						<when test="conceptBuilt == true">
+							and current_stage in ('A', 'B', 'C', 'D' ) and deleted = 'N'
+						</when>
+						<when test="conceptBuilt == false">
+							and current_stage = 'R' and deleted = 'N'
+						</when>
+					</choose>				
+				</when>
+				<!-- 지난 영업 일보용 데이터 -->
+				<when test="activeList == false">
+					<choose>
+						<when test="conceptBuilt == true">
+							and current_stage in ('F' ) and deleted = 'Y'
+						</when>
+						<when test="conceptBuilt == false">
+							and current_stage = 'R' and deleted = 'Y'
+						</when>
+					</choose>
+				</when>
+			</choose>		
+			
+			<if test="orderNoBase != null and orderNoBase != '' ">
+				and order_no_base like concat(#{orderNoBase}, '%')
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''">
+				and order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="keyword != null and keyword != ''">
+				and device like concat('%', #{keyword}, '%')
+			</if>
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and order_date between #{orderDateFrom} and date_add(#{orderDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null and orderDateTo == null">
+				<![CDATA[
+					and order_date &gt; #{orderDateFrom}
+					]]> 
+				</when>
+				<when test="orderDateFrom == null and orderDateTo != null">
+					and order_Date &lt; date_add(#{orderDateTo}, interval 1 day)
+				</when>				
+			</choose>
+		
+			
+	</select>		
+
+	<insert id="insertConceptJob" parameterType="com.yuhannci.erp.model.db.ConceptJobOrder">
+	
+		insert into concept_job_order (order_date
+												, order_type
+												, customer_id
+												, order_no_base, order_no_extra
+												, device, quantity
+												, business_user_id, design_user_id
+												, customer_user
+												, note
+												, internal_unit_price, internal_unit_price_shared_date
+												, estimated_price, negotiated_price
+												, internal_price_file_no, concept_file_no )
+									values ( #{orderDate}
+												, #{orderType}
+												, #{customerId}
+												, #{orderNoBase}, #{orderNoExtra}
+												, #{device}, #{quantity}
+												, #{businessUserId}, #{designUserId}
+												, #{customerUser}
+												, #{note}
+												, #{internalUnitPrice}, #{internalUnitPriceSharedDate}
+												, #{estimatedPrice}, #{negotiatedPrice}
+												, #{internalPriceFileNo}, #{conceptFileNo}  );
+	</insert>
+	
+	<update id="updateConceptJob" parameterType="com.yuhannci.erp.model.db.ConceptJobOrder">
+		
+		update concept_job_order set 
+			device = #{device},
+			<if test="conceptFinishDate != null">
+			concept_finish_date = #{conceptFinishDate},
+			</if>
+			<if test="internalUnitPriceSharedDate != null">
+			internal_unit_price_shared_date = #{internalUnitPriceSharedDate},
+			</if>
+			<if test="orderDate != null">
+			order_date = #{orderDate},
+			</if>			
+			quantity = #{quantity},
+			<if test="businessUserId != null">
+			business_user_id = #{businessUserId},
+			</if>
+			<if test="designUserId != null">
+			design_user_id = #{designUserId},
+			</if>
+			<if test="customerUser != null">
+			customer_user = #{customerUser},
+			</if>
+			<if test="note != null">
+			note = #{note},
+			</if>
+			<if test="conceptFileNo != null">
+			concept_File_No = #{conceptFileNo},
+			</if>
+			<if test="conceptFileNo != null">
+			internal_Price_File_No = #{internalPriceFileNo},
+			</if>
+			<if test="currentStage != null">
+			current_stage = #{currentStage},
+			</if>
+			last_modified_when = now(),
+			last_modified_user_id = #{lastModifiedUserId}
+				
+		where id = #{id}
+	</update>
+	
+	<update id="markConceptJobDeleted" parameterType="HashMap">
+	
+		update concept_job_order set
+			deleted = 'Y',
+			last_modified_when = now(),
+			last_modified_user_id = #{lastModifiedUserId}
+		where id = #{id} 
+	
+	</update>
+	
+	<update id="markConceptJobFinished" parameterType="HashMap">
+	
+		update concept_job_order set 
+			current_stage = 'A', 
+			concept_finish_date =
+			<choose>
+				<when test="conceptFinishDate != null">
+					#{conceptFinishDate},
+				</when>
+				<otherwise>
+					now(),
+				</otherwise>
+			</choose>			
+			last_modified_when = now(),
+			last_modified_user_id = #{lastModifiedUserId}
+		where id = #{id} 
+	
+	</update>
+		<update id="markConceptJobIsOrdered" parameterType="HashMap">
+	
+		update concept_job_order set 
+			current_stage = 'F', 
+			job_order_id = #{jobOrderId},
+			last_modified_when = now(),
+			last_modified_user_id = #{lastModifiedUserId}
+		where id = #{id} 
+	
+	</update>
+</mapper>

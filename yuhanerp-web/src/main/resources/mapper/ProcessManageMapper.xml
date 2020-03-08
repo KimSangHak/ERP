@@ -1,0 +1,1067 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.ProcessManageMapper">
+	
+	<sql id="processFields">
+			DRAWING.id
+			, order_id
+			, FN_GetCustomerName(JOB.customer_id) as customer_name
+			, JOB.device
+			, DRAWING.order_type
+			, DRAWING.order_no_base
+			, DRAWING.order_no_extra
+			, drawing_no
+			, FN_GetDisplayDrawingNo(DRAWING.order_type, DRAWING.order_no_base, DRAWING.order_no_extra, DRAWING.drawing_no) as design_drawing_no
+			
+			, design_user_id
+			, FN_GetUserName(JOB.design_user_id) as design_user_name 
+			, description
+			, dimension
+			, material
+			, thermal
+			, DRAWING.quantity
+			, spare
+			, postprocessing
+			, classification
+			, reason
+			, checking
+			, DRAWING.note
+	
+		    , JOB.design_date
+	
+			, DRAWING.current_stage
+			, work_status
+			, work_quantity
+			, work_position
+			
+			, outsourcing_partner_id
+			, (select partner_name from job_partner where id = outsourcing_partner_id) as outsourcing_partner_name			
+			, outsourcing_request_id
+			, outsourcing_estimate_request_id
+			
+			, process_finish_date
+			, coating_date
+			
+			, inspect_id
+			, inspect_date
+			, (select hash from registered_file where id = (select result_file_id from job_inspect where job_inspect.id = inspect_id)) as inspect_file_hash
+			
+			, hold_reason
+			
+			, process_finish_plan_date
+			, inspect_plan_date
+			, coating_finish_plan_date
+	</sql>
+	
+	<!-- 가공 내역 관리 리스트 -->
+	<select id="selectProcessReadyDetailList" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+		select
+		<include refid="processFields" /> 
+		from job_order JOB inner join job_design_drawing DRAWING 
+			on JOB.id = DRAWING.order_id 
+		
+		where
+			JOB.deleted = 'N' and
+			
+			DRAWING.current_stage = 'B' AND 
+			DRAWING.work_status = 'R' AND 
+			DRAWING.process_completed = 'N'
+			
+		<if test="device != null">
+			and JOB.device like concat('%', #{device}, '%') 
+		</if>
+		<if test="orderNoBase != null and orderNoBase != '' ">
+			and DRAWING.order_no_base like concat(#{orderNoBase}, '%')
+		</if>
+		<if test="orderNoExtra != null and orderNoExtra != ''">
+			and DRAWING.order_no_extra like concat(#{orderNoExtra}, '%')
+		</if>		
+		<if test="drawingNo != null and drawingNo != ''">
+			and DRAWING.drawing_no like concat(#{drawingNo}, '%')
+		</if>
+		<if test="selectedCustomer != null and selectedCustomer != '' " >
+			and JOB.customer_id = #{selectedCustomer} 
+		</if>
+		<if test="length != null and length != -1">
+			limit #{start}, #{length}
+		</if>
+		
+				
+	</select>
+	
+	<select id="selectProcessReadyDetailListCount" parameterType="HashMap" resultType="Integer">
+		select
+			count(*)
+		from job_order JOB inner join job_design_drawing DRAWING 
+			on JOB.id = DRAWING.order_id 
+		
+		where
+			JOB.deleted = 'N' and
+			
+			DRAWING.current_stage = 'B' AND 
+			DRAWING.work_status = 'R' AND 
+			DRAWING.process_completed = 'N'
+			<if test="device != null">
+				and JOB.device like concat('%', #{device}, '%') 
+			</if>
+			<if test="orderNoBase != null and orderNoBase != '' ">
+				and DRAWING.order_no_base like concat(#{orderNoBase}, '%')
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''">
+				and DRAWING.order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>		
+			<if test="drawingNo != null and drawingNo != ''">
+				and DRAWING.drawing_no like concat(#{drawingNo}, '%')
+			</if>
+			<if test="selectedCustomer != null and selectedCustomer != '' " >
+				and JOB.customer_id = #{selectedCustomer} 
+			</if>
+	</select>
+
+	<!-- 외주 가공 발주 리스트-->
+	<select id="selectOutsourcingList" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+	
+		select
+		<include refid="processFields" /> 
+		from job_order JOB 
+			inner join
+			job_design_drawing DRAWING on JOB.id = DRAWING.order_id
+		where
+		DRAWING.current_stage = 'B' AND 
+		DRAWING.work_status = 'R' AND 
+		work_position = 'O' and
+		process_completed = 'N'
+		
+		<if test="device != null">
+			and JOB.device like concat('%', #{device}, '%') 
+		</if>
+		<if test="orderNoBase != null and orderNoBase != '' ">
+			and DRAWING.order_no_base like concat(#{orderNoBase}, '%')
+		</if>
+		<if test="orderNoExtra != null">
+			and DRAWING.order_no_extra like concat(#{orderNoExtra}, '%')
+		</if>		
+		<if test="drawingNo != null and drawingNo != ''">
+			and DRAWING.drawing_no like concat(#{drawingNo}, '%')
+		</if>
+		<if test="selectedPartnerId != null">
+			and outsourcing_partner_id = #{selectedPartnerId}
+		</if>	
+		<if test="selectedCustomer != null and selectedCustomer != '' " >
+			and JOB.customer_id = #{selectedCustomer} 
+		</if>
+			
+		<if test="length != null and length != -1">
+			limit #{start}, #{length}
+		</if>
+	</select>
+	
+	<select id="selectOutsourcingListCount" parameterType="HashMap" resultType="Integer">
+	
+		select
+			count(*) 
+		from job_order JOB 
+			inner join
+			job_design_drawing DRAWING on JOB.id = DRAWING.order_id
+		where
+		DRAWING.current_stage = 'B' AND 
+		DRAWING.work_status = 'R' AND 
+		work_position = 'O' and
+		process_completed = 'N'
+		
+		<if test="device != null">
+			and JOB.device like concat('%', #{device}, '%') 
+		</if>
+		<if test="orderNoBase != null and orderNoBase != '' ">
+			and DRAWING.order_no_base like concat(#{orderNoBase}, '%')
+		</if>
+		<if test="orderNoExtra != null">
+			and DRAWING.order_no_extra like concat(#{orderNoExtra}, '%')
+		</if>		
+		<if test="drawingNo != null and drawingNo != ''">
+			and DRAWING.drawing_no like concat(#{drawingNo}, '%')
+		</if>
+		<if test="selectedPartnerId != null">
+			and outsourcing_partner_id = #{selectedPartnerId}
+		</if>	
+		<if test="selectedCustomer != null and selectedCustomer != '' " >
+			and JOB.customer_id = #{selectedCustomer} 
+		</if>	
+	</select>
+	
+	<!-- 가공 검사 현황 리스트 -->
+	<select id="selectprocessingAndCheckList" parameterType="HashMap" resultType="com.yuhannci.erp.model.ProcessingAndCheckListEntry">
+		select
+
+			DRAWING.id
+			, FN_GetDisplayDrawingNo(DRAWING.order_type, DRAWING.order_no_base, DRAWING.order_no_extra, DRAWING.drawing_no) as design_drawing_no
+			, FN_GetDisplayOutSourcingOrderNo(ORD.partner_id, ORD.request_type, ORD.id) as outsourcing_order_no
+			, FN_GetUserName(JOB.design_user_id) as design_user_name
+			, material
+			, thermal
+			, DRAWING.quantity
+			, DRAWING.spare
+			, postprocessing
+			, FN_GetOutSourceName(DRAWING.work_position, DRAWING.outsourcing_partner_id)  as outsourcing_partner_name
+			, ORD.delivery_date
+			, ORD.delivery_plan_date
+			, FN_GetTypeName('job_design_drawing', DRAWING.work_status) as process_status
+			, checking
+			, inspect_date
+			, inspect_plan_date
+			, (select result_ok from job_inspect where job_inspect.id = inspect_id) as test_result
+			, (select hash from registered_file where id = (select result_file_id from job_inspect where job_inspect.id = inspect_id)) as inspect_file_hash
+			, FN_GetDrawingCurrentStatus(DRAWING.current_stage) as current_stage
+
+		from job_design_drawing DRAWING
+			inner join job_order JOB on DRAWING.order_id = JOB.id
+			left outer join job_partner_outsourcing_order ORD
+			on (DRAWING.current_stage <![CDATA[ <> ]]> 'F' and ORD.request_type='P' and ORD.is_receive='N' and DRAWING.outsourcing_partner_id = ORD.partner_id and ORD.job_design_drawing_id = DRAWING.id )
+
+		where
+			DRAWING.current_stage in ('C', 'D')
+			and process_completed = 'N'
+			
+			<if test="orderNoBase != null">
+				and DRAWING.order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and DRAWING.order_no_extra = #{orderNoExtra}
+			</if>			
+			<if test="drawingNo != null">
+				and DRAWING.drawing_no = #{drawingNo}
+			</if>			
+			<if test="outsourcingPartnerId != null">
+				and DRAWING.outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>
+			<if test="workPosition != null">
+				and DRAWING.work_position = #{workPosition}
+			</if>
+			
+			<if test="statusR != null">
+				and FN_GetTypeName('job_design_drawing', DRAWING.work_status) = '대기'
+			</if>
+			
+			
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and ORD.request_date between #{orderDateFrom} and date_add(#{orderDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and ORD.request_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and ORD.request_date <![CDATA[ < ]]> date_add(#{orderDateTo}, interval 1 day)
+				</when>
+			</choose> 			
+			
+		order by DRAWING.order_no_base, DRAWING.order_no_extra, DRAWING.drawing_no
+		
+		<if test="length != null and length != -1">
+			limit #{start}, #{length}
+		</if>		
+	</select>
+	<select id="selectprocessingAndCheckListCount" parameterType="HashMap" resultType="Integer">
+	
+		select
+
+			count(*)
+
+		from job_design_drawing DRAWING
+			inner join job_order JOB on DRAWING.order_id = JOB.id
+			left outer join job_partner_outsourcing_order ORD
+			on (DRAWING.current_stage != 'F' and ORD.request_type='P' and ORD.is_receive='N' and DRAWING.outsourcing_partner_id = ORD.partner_id and ORD.job_design_drawing_id = DRAWING.id )
+
+		where
+			DRAWING.current_stage in ('C', 'D')
+			and process_completed = 'N'
+	
+			<if test="orderNoBase != null">
+				and DRAWING.order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null">
+				and DRAWING.order_no_extra = #{orderNoExtra}
+			</if>			
+			<if test="drawingNo != null">
+				and DRAWING.drawing_no = #{drawingNo}
+			</if>			
+			<if test="outsourcingPartnerId != null">
+				and DRAWING.outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>
+			
+			<if test="workPosition != null">
+				and DRAWING.work_position = #{workPosition}
+			</if>
+			
+			<if test="statusR != null">
+				and FN_GetTypeName('job_design_drawing', DRAWING.work_status) = '대기'
+			</if>
+			
+			<choose>
+				<when test="orderDateFrom != null and orderDateTo != null">
+					and ORD.request_date between #{orderDateFrom} and date_add(#{orderDateTo}, interval 1 day)
+				</when>
+				<when test="orderDateFrom != null">
+					and ORD.request_date <![CDATA[ >= ]]> #{orderDateFrom} 
+				</when>
+				<when test="orderDateTo != null">
+					and ORD.request_date <![CDATA[ < ]]> date_add(#{orderDateTo}, interval 1 day)
+				</when>
+			</choose> 			
+		
+	</select>
+	
+	<!-- 가공 대기 내역에서 사내가공으로 설정 -->
+	<update id="assignToInnerProcess" parameterType="HashMap">
+	
+		update job_design_drawing set
+			current_stage = 'C',
+			work_position = 'I',
+			work_quantity = 0,
+			work_status = 'R',
+			outsourcing_partner_id = null,
+			outsourcing_estimate_request_id = null,
+			outsourcing_request_id = null
+			<if test="processFinishPlanDate != null">
+			, process_finish_plan_date = #{processFinishPlanDate}
+			</if>
+			<if test="coatingFinishPlanDate != null">
+			, coating_finish_plan_date = #{coatingFinishPlanDate}
+			</if>
+			<if test="inspectPlanDate != null">
+			, inspect_plan_date = #{inspectPlanDate}
+			</if>
+		where	id = #{id} 
+	
+	</update>
+	
+	<!-- 가공 대기 내역에서 외주 가공 설정 -->
+	<update id="assignToPartnerProcess" parameterType="HashMap">
+	
+		update job_design_drawing set
+			current_stage = 'B',
+			work_status = 'R',
+			work_position = 'O',
+			work_quantity = 0,
+			outsourcing_partner_id = #{outsourcingPartnerId},
+			outsourcing_estimate_request_id = null,
+			outsourcing_request_id = null
+			<if test="processFinishPlanDate != null">
+			, process_finish_plan_date = #{processFinishPlanDate}
+			</if>
+			<if test="coatingFinishPlanDate != null">
+			, coating_finish_plan_date = #{coatingFinishPlanDate}
+			</if>
+			<if test="inspectPlanDate != null">
+			, inspect_plan_date = #{inspectPlanDate}
+			</if>			
+		where id =#{id}
+	
+	</update>
+	
+	<!-- 가공 대기 내역에서 표준품 으로 변경 -->
+	<update id="assignToStandardProduct" parameterType="HashMap">
+	
+		update job_design_drawing set
+			current_stage = 'B',
+			work_position = 'S',
+			work_quantity = (quantity+spare),
+			work_status = 'R',
+			process_completed = 'Y',
+			coating_stage = 'Y',
+			outsourcing_partner_id = null,
+			outsourcing_estimate_request_id = null,
+			outsourcing_request_id = null
+			<if test="processFinishPlanDate != null">
+			, process_finish_plan_date = #{processFinishPlanDate}
+			</if>
+			<if test="coatingFinishPlanDate != null">
+			, coating_finish_plan_date = #{coatingFinishPlanDate}
+			</if>
+			<if test="inspectPlanDate != null">
+			, inspect_plan_date = #{inspectPlanDate}
+			</if>			
+		where id =#{id}
+	
+	</update>
+	
+		<!-- 가공 대기 내역에서 표준품 가공으로 변경 -->
+	<update id="assignToStandardProductWithProcess" parameterType="HashMap">
+	
+		update job_design_drawing set
+			current_stage = 'C',
+			work_position = 'D',
+			work_quantity = 0,
+			work_status = 'R',
+			outsourcing_partner_id = null,
+			outsourcing_estimate_request_id = null,
+			outsourcing_request_id = null
+			<if test="processFinishPlanDate != null">
+			, process_finish_plan_date = #{processFinishPlanDate}
+			</if>
+			<if test="coatingFinishPlanDate != null">
+			, coating_finish_plan_date = #{coatingFinishPlanDate}
+			</if>
+			<if test="inspectPlanDate != null">
+			, inspect_plan_date = #{inspectPlanDate}
+			</if>
+						
+		where id =#{id}
+	
+	</update>
+	
+	<!-- 가공 취소 -->
+	<update id="cancelProcessRequest" parameterType="HashMap">
+	
+		update job_design_drawing set
+			current_stage = 'B',
+			work_status = 'R',
+			process_completed = 'N',
+			hold_reason = #{holdReason},
+			outsourcing_partner_id = null
+		where id = #{id} 
+		
+	</update>
+	
+	<update id="cancelProcessRequest2" parameterType="HashMap">
+	
+		update job_design_drawing set
+			current_stage = 'S',
+			work_status = 'C',
+			process_completed = 'N',
+			hold_reason = #{holdReason},
+			outsourcing_partner_id = null
+		where id = #{id} 
+		
+	</update>
+	
+	<update id="setOutsourcingPartnerIdAndWorkPosition" parameterType="com.yuhannci.erp.model.db.JobDesignDrawing">
+	
+		update job_design_drawing set
+			work_position = #{workPosition},
+			outsourcing_partner_id = #{outsourcingPartnerId},
+			process_completed = 'N'
+		where id = #{id} 
+		
+	</update>	
+		
+	<!-- 외주 가공 발주된 상태로 변경 -->
+	<update id="markToOutsourcingOrdered" parameterType="HashMap">
+	
+		update job_design_drawing 
+		set
+			current_stage = 'C'
+			, work_status = 'I'
+			, outsourcing_request_id = #{outsourcingRequestId}
+			<if test="withPostprocessing">
+			, coating_requested = 'Y'
+			</if>
+		where
+			id = #{id}
+	
+	</update>
+
+	<!-- 추가 외주 가공 발주된 상태로 변경 -->
+	<update id="markToAddOutsourcingOrdered" parameterType="HashMap">
+	
+		update job_design_drawing 
+		set
+			current_stage = 'C'
+			, work_status = 'I'
+			, outsourcing_partner_id = #{outsourcingPartnerId}
+			, outsourcing_request_id = #{outsourcingRequestId}
+			, process_finish_date = NULL
+			, process_finish_plan_date = #{processFinishPlanDate}
+		where
+			id = #{id}
+	
+	</update>
+
+	<!-- 외주 가공 견적 요청 상태로 변경 -->
+	<update id="markAsEstimateRequested" parameterType="HashMap">
+	
+		update job_design_drawing 
+		set
+			outsourcing_estimate_request_id = #{estimateRequestId}
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="markAsPostprocessOrderRequested" parameterType="HashMap">
+	
+		update job_design_drawing 
+		set
+			current_stage = 'G',
+			coating_requested = 'Y',
+			work_status = 'I',
+			work_position = 'O', 
+			coating_partner_id = #{partnerId},
+			coating_request_id = #{orderId}
+		where
+			id = #{id}
+	
+	</update>
+	
+	<!-- 후처리 발주로 전환 -->
+	<update id="updateSkipToPostprocessOrderRequested" parameterType="HashMap">
+	
+		update job_design_drawing 
+		set
+			current_stage = 'G',
+			work_status = 'I',
+			coating_stage = 'N', 
+			coating_partner_id = #{partnerId},
+			coating_request_id = #{orderId}
+		where
+			id = #{id}
+	
+	</update>	
+	
+	<!-- 완품/가공 입고 -->
+	<!-- 사내가공 완료 또는 외주 가공중인 목록 -->
+	<!-- 
+	<select id="selectWarehousingOfFinishedOrProcessingList" parameterType="HashMap" resultType="com.yuhannci.erp.model.CarryInEntry">
+	
+		select 
+			DRAWING.id
+			, FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) as design_drawing_no
+			,outsourcing_request_id
+			, (select FN_GetUserName(design_user_id) from job_order where job_order.id = DRAWING.order_id) as design_user_name
+			, material
+			, thermal
+			, DRAWING.quantity
+			, spare
+			, postprocessing
+			
+			, (select partner_name from job_partner where id = outsourcing_partner_id) as outsourcing_partner_name
+			, outsourcing_finish_date
+			, outsourcing_request_id
+			
+			, checking
+			, inspect_date
+			, INSPECT.ok_quantity as inspect_pass_quantity
+			, INSPECT.fail_quantity as inspect_ng_quantity
+			, INSPECT.result_ok as test_result
+		from 
+			job_design_drawing DRAWING 
+				left outer join 
+			job_inspect INSPECT on INSPECT.id = DRAWING.inspect_id
+		where
+			current_stage = 'B'
+			and process_completed = 'N' 
+			<if test="outsourcingPartnerId != null">
+				and outsourcing_partner_id = #{outsourcingPartnerId}
+			</if>
+			<choose>
+				<when test="workPosition == 'I'">
+					and (DRAWING.work_position = 'I' and DRAWING.work_status = 'F' )
+				</when>
+				<when test="workPosition == 'O'">
+					and (DRAWING.work_position = 'O' and DRAWING.work_status = 'I' )
+				</when>
+				<otherwise>
+					and ((DRAWING.work_position = 'I' and DRAWING.work_status = 'F' ) or (DRAWING.work_position = 'O' and DRAWING.work_status = 'I' ))
+				</otherwise>				
+			</choose>
+			
+		order by order_no_base, order_no_extra, drawing_no 
+	
+	</select>
+	 -->
+	 
+	<!-- 완품/가공 입고 처리 -->
+	<update id="MarkAsFinishedProductIn" parameterType="HashMap" >
+	
+		update job_design_drawing
+		set
+			work_status = 'R'
+			, coating_stage = #{coatingStage}
+			, process_completed = 'Y'
+			, current_stage = 'B'
+		where
+			id = #{id}	
+	</update>
+	
+	<select id="selectMovePossibleOrder" resultType="com.yuhannci.erp.model.db.JobOrder">
+		select d.id, d.device, d.note,
+
+			(select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where id = d.id) as order_no,
+
+			(select count(*) from job_design_drawing where order_id = d.id and current_stage != 'Z') as count
+
+			from job_order d
+
+			where moveYN = 'Y' and current_stage = 'F'
+			
+			and (select count(*) from job_design_drawing where order_id = d.id and current_stage != 'Z') != 0;
+		
+	
+	</select>
+	
+	<select id="selectMovePossibleOrder2" resultType="com.yuhannci.erp.model.db.JobOrder">
+		select d.id, d.device, d.note,
+
+			(select FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) from job_order where id = d.id) as order_no,
+
+			(select count(*) from job_design_drawing where order_id = d.id and current_stage != 'Z') as count
+
+			from job_order d
+
+			where moveYN = 'Y' and current_stage != 'F'
+			
+			and (select count(*) from job_design_drawing where order_id = d.id and current_stage != 'Z') != 0;
+		
+	
+	</select>
+	
+	<select id="MoveDesignDrawingPopup" parameterType="Long" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+		select d.id, d.quantity, d.spare, d.work_quantity,
+
+			(FN_GetDisplayDrawingNo(d.order_type, d.order_no_base, d.order_no_extra, d.drawing_no)) as design_drawing_no
+
+
+			from job_design_drawing d
+
+			where order_id = #{id} and  current_stage != 'Z';
+		
+	
+	</select>
+	
+	<select id="OrderIdToOrderNoFromMoverOrder" parameterType="Long" resultType="String">
+	
+
+			select
+			 
+				FN_GetDisplayOrderNo(order_type, order_no_base,order_no_extra) 
+				
+				from job_order where id = #{id} ;
+
+	
+	</select>
+	
+	<select id="OrderIdToOrderNoBaseFromMoverOrder" parameterType="Long" resultType="String">
+	
+
+			select
+			 
+				order_no_base
+				
+				from job_order where id = #{id} ;
+
+	
+	</select>
+	
+	<select id="OrderIdToOrderNoExtraFromMoverOrder" parameterType="Long" resultType="String">
+	
+
+			select
+			 
+				order_no_extra
+				
+				from job_order where id = #{id} ;
+
+	
+	</select>
+	
+	<select id="selectDrawingNoFromMoveOrder" parameterType="Long" resultType="String">
+		select drawing_no from job_design_drawing where id = #{id};
+		
+	</select>
+	
+	<select id="countIsDrawingNoEqauls" parameterType="HashMap" resultType="int">
+		select count(*) from job_design_drawing where order_id = #{selectOrderId} and drawing_no = #{grandDrawingNo}
+		
+	</select>
+	
+	<update id="processSetWorkMinAll" parameterType="Long">
+	
+		update job_mct_history 
+
+			set workMin = TIMESTAMPDIFF(MINUTE, start_datetime, end_datetime)
+
+			where work_quantity != 0 and id=#{id};
+	</update>
+	
+	<select id="JobHistroyMctFromMoveAll" parameterType="Long" resultType="com.yuhannci.erp.model.db.JobMctHistory">
+		select * from job_mct_history where drawing_id = #{id}
+		
+	</select>
+	
+	<select id="jobDesignIdFromMove" parameterType="HashMap" resultType="Long">
+		select id from job_design_drawing where drawing_no = #{grandDrawingNo} and order_id = #{selectOrderId};
+		
+	</select>
+	
+	<insert id="addJobMctHistoryFromMove" parameterType="com.yuhannci.erp.model.db.JobMctHistory">
+	
+		insert into job_mct_history 
+		
+		(mct_id ,user_id, drawing_id, start_datetime, end_datetime, workMin, order_type, order_no_base, order_no_extra, drawing_no, work_quantity, finish_status, hold_reason)
+		
+		values
+		(#{mctId} ,#{userId}, #{drawingIdmct}, #{startDatetime}, #{endDatetime}, #{workMin}, #{orderType}, #{orderNoBase}, #{orderNoExtra}, #{drawingNo}, #{workQuantity}, #{finishStatus}, #{holdReason})	
+	</insert>
+	
+	<delete id="deleteJobMctHistoryFromMove" parameterType="Long">
+		delete from job_mct_history
+		
+		where id = #{id}
+
+	</delete>
+	
+	<update id="updateJobMctHistoryFromMove" parameterType="HashMap">
+	
+		update job_mct_history 
+
+			set work_quantity = #{workQuantity}
+
+			where id=#{id};
+	</update>
+	
+	<select id="jobInspectFromMove" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobInspect">
+		select * from job_inspect 
+		
+		where
+		
+			job_drawing_id in		
+			<foreach collection="jobDrawingId" item="V" open="(" close=")" separator=",">
+				#{V}
+			</foreach>
+		
+	</select>
+	
+	<select id="DrawingFromMoveSelectIdForInspect" parameterType="Long" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+		select * from job_design_drawing where order_id = #{grandOrderId}
+		
+	</select>
+	
+	<insert id="addFromMoveForJobInspect" parameterType="com.yuhannci.erp.model.db.JobInspect">
+	
+		insert into job_inspect 
+		
+		(job_drawing_id ,get_date, get_from_id, get_to_id, work_status, start_date, stop_date, requested_date, deliver_date, result_ok, result_file_id, put_from_id, put_to_id, ok_quantity, fail_quantity, inspect_progress, is_delivery, hold_reason)
+		
+		values
+		(#{jobDrawingId} ,#{getDate}, #{getFromId}, #{getToId}, #{workStatus}, #{startDate}, #{stopDate}, #{requestedDate}, #{deliverDate}, #{resultOk}, #{resultFileId}, #{putFromId}, #{putToId}, #{okQuantity}, #{failQuantity}, #{inspectProgress}, #{isDelivery}, #{holdReason})	
+	</insert>
+	
+	<update id="updateFromMoveForDesignQuantity" parameterType="HashMap">
+	
+		update job_design_drawing 
+
+			set 
+			
+			quantity = (quantity - #{qty}),
+			work_quantity = (work_quantity - #{qty})
+			
+
+			where id=#{id};
+	</update>
+	
+	<select id="oneDesignSelectGrandid" parameterType="Long" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+		select * from job_design_drawing where id = #{id}
+		
+	</select>
+	
+	<select id="nodeOrderDesignqtyCount" parameterType="Long" resultType="int">
+		select (quantity + spare) from job_design_drawing where id = #{id}
+		
+	</select>
+	
+	<update id="nodeOrderDesignDrawingSet" parameterType="HashMap">
+	
+		update job_design_drawing 
+
+			set work_quantity = #{qty}
+
+			where id=#{id};
+	</update>
+	
+	<update id="grandOrderDesignDrawingSetCureent" parameterType="Long">
+	
+		update job_design_drawing 
+
+			set current_stage = 'Z'
+
+			where id=#{id};
+	</update>
+	
+	<select id="oneDesignSelectNodeid" parameterType="Long" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+		select * from job_design_drawing where id = #{id}
+		
+	</select>
+	
+	<update id="nodeOrderDesignDrawingSetAll" parameterType="com.yuhannci.erp.model.db.JobDesignDrawing">
+	
+		update job_design_drawing 
+
+			set work_position = #{workPosition},
+			process_completed = #{processCompleted},
+			process_finish_date = #{processFinishDate},
+			process_finish_plan_date = #{processFinishPlanDate},
+			coating_date = #{coatingDate},
+			coating_partner_id = #{coatingPartnerId},
+			coating_request_id = #{coatingRequestId},
+			coating_stage = #{coatingStage},
+			coating_requested = #{coatingRequested},
+			checking = #{checking},
+			inspect_id = #{inspectId},
+			inspect_date = #{inspectDate},
+			inspect_plan_date = #{inspectPlanDate},
+			hold_reason = #{holdReason}
+
+			where id=#{id};
+	</update>
+	
+	<update id="grandOrderDesignDrawingSetWorkQty" parameterType="HashMap">
+	
+		update job_design_drawing 
+
+			set 
+			work_quantity = (work_quantity - #{qty}),
+			quantity = (quantity - #{qty})
+		
+
+			where id=#{id};
+	</update>
+	
+	<select id="grandOrderDesignSelectQtyFromMove" parameterType="Long" resultType="int">
+		select quantity from job_design_drawing where id = #{id}
+		
+	</select>
+	
+	<select id="grandOrderDesignSelectWorkQtyFromMove" parameterType="Long" resultType="int">
+		select work_quantity from job_design_drawing where id = #{id}
+		
+	</select>
+	
+	<update id="moveOrderCompletFromMM" parameterType="Long">
+	
+		update job_order 
+
+			set current_stage = 'F'
+
+			where id=#{id};
+	</update>
+	
+	<select id="whatKindOfProcess" parameterType="Long" resultType="String">
+		select work_position from job_design_drawing where id = #{id}
+		
+	</select>
+	
+	<select id="whatProcessStatus" parameterType="Long" resultType="String">
+		select FN_GetTypeName('job_design_drawing', work_status) from job_design_drawing where id = #{id}
+		
+	</select>
+	
+	<update id="updateDesigToProcessFirst" parameterType="Long">
+	
+		update job_design_drawing 
+
+			set 
+			current_stage = 'B',
+			work_position = null
+
+			where id=#{id};
+	</update>
+	
+	<update id="updateDesignOToProcessFirst" parameterType="Long">
+	
+		update job_design_drawing 
+
+			set 
+			outsourcing_partner_id = null,
+			work_position = null
+
+			where id=#{id};
+	</update>
+	
+	<select id="selectedUIDFromOutsourcing" parameterType="Long" resultType="Long">
+		select uid from job_partner_outsourcing_order where job_design_drawing_id = #{drawingId} limit 1;
+		
+	</select>
+	
+	<delete id="deletedOutsourcingFromUID" parameterType="Long">
+		delete from job_partner_outsourcing_order
+		
+		where uid = #{uid}
+
+	</delete>
+	
+	<update id="updateCheckTrueFromCarryIn" parameterType="Long">
+	
+		update job_design_drawing set
+			checking = 'Y'
+		where id = #{id} 
+		
+	</update>
+	
+	<update id="updateReProcessOutToIn" parameterType="Long">
+	
+		update job_design_drawing 
+		set
+		work_position = 'I',
+		process_completed = 'N',
+		work_quantity = 0,
+		current_stage = 'C',
+		work_status = 'R',
+		outToIn = 'Y'
+			
+		where id = #{id} 
+		
+	</update>
+	
+	<select id="selectInsepectResult" parameterType="Long" resultType="String">
+		select result_ok 
+			from job_inspect
+			where job_drawing_id = #{jobDrawingId};
+		
+	</select>
+	
+	<select id="selectDrawingKindworkPositon" parameterType="Long" resultType="String">
+		select work_position from job_design_drawing where id = #{id}
+		
+	</select>
+	
+	<insert id="insDesignHistry" parameterType="HashMap">
+	
+		insert into design_history 
+		
+		(drawing_id ,kind, reg_usr, reg_date, description)
+		
+		values
+		(#{drawingId}, #{kind}, #{regUsr}, now(), #{description})	
+	</insert>
+	
+	<select id="selectNGcarry" parameterType="Long" resultType="com.yuhannci.erp.model.NGcarry">
+		
+		select
+			DRAWING.id as drawingId, 
+			FN_GetDisplayDrawingNo(DRAWING.order_type, DRAWING.order_no_base, DRAWING.order_no_extra, DRAWING.drawing_no) as drawNo,
+			(DRAWING.quantity+DRAWING.spare) as qty,
+			INSPECT.fail_quantity
+	
+		from job_design_drawing as DRAWING
+		inner join job_inspect as INSPECT
+		on DRAWING.inspect_id = INSPECT.id
+		where DRAWING.id = #{id}
+		
+	</select>
+	
+	<update id="updateDesignfromNGcarry" parameterType="HashMap">
+	
+		update job_design_drawing 
+		set
+		current_stage = 'C',
+		work_status = 'R',
+		work_quantity = (work_quantity - #{rqty}),
+		process_completed = 'N'
+
+		where id = #{id} 
+		
+	</update>
+	
+	<select id="selectProcessHistoryPageList" resultType="com.yuhannci.erp.model.db.ProcessHistoryDetail">
+		
+		select id, 
+		FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) as fdrawingNo
+		, description, quantity, spare 
+		
+		from job_design_drawing
+		
+		where
+		
+			<choose>
+				<when test="orderNoBase != null">
+					order_no_base = #{orderNoBase}
+				</when>
+				<otherwise>
+					order_no_base = null
+				</otherwise>
+			</choose>
+			
+			<if test="orderNoExtra != null">
+				and order_no_extra = #{orderNoExtra}
+			</if>
+			
+			<if test="drawingNo != null">
+				and drawing_no like concat('%', #{drawingNo}, '%')
+			</if>	
+			
+			order by id desc
+			
+			<if test="length != null and length != -1">
+				limit #{start}, #{length}
+			</if>		
+		
+	</select>
+	
+	<select id="selectProcessHistoryPageListCount" resultType="Integer">
+		
+		select count(*)
+		
+		from job_design_drawing
+		
+		where
+		
+			<choose>
+				<when test="orderNoBase != null">
+					order_no_base = #{orderNoBase}
+				</when>
+				<otherwise>
+					order_no_base = null
+				</otherwise>
+			</choose>
+			
+			<if test="orderNoExtra != null">
+				and order_no_extra = #{orderNoExtra}
+			</if>
+			
+			<if test="drawingNo != null">
+				and drawing_no like concat('%', #{drawingNo}, '%')
+			</if>	
+			
+			order by id desc		
+		
+	</select>
+	
+	<select id="detailDesignDrawingOnehistory" parameterType="Long" resultType="com.yuhannci.erp.model.db.DesignDrawingHistory">
+		
+		select his.*,
+			FN_GetDisplayDrawingNo(DRAW.order_type, DRAW.order_no_base, DRAW.order_no_extra, DRAW.drawing_no) as designDrawingNo,
+			(select name from user where id = his.reg_usr) as usrName
+		
+		from design_history as his
+		inner join job_design_drawing DRAW
+		on his.drawing_id = DRAW.id
+		where his.drawing_id = #{id}
+		order by his.reg_date DESC
+		
+	</select>
+	
+	<select id="nowDrawinghistoryWhere" parameterType="Long" resultType="com.yuhannci.erp.model.DesignHistorywhere">
+		
+		select 
+		(select dept_name from dept_data where id = tp.receive_dept) as deptName,
+		tp.complet
+		
+		from transition_processing as tp
+		where tp.job_design_drawing_id = #{id}
+		order by tp.id DESC
+		limit 1; 		
+		
+	</select>
+	
+	<select id="drawHisFullNo" parameterType="Long" resultType="String">
+		
+		select FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) as designDrawingNo
+		from job_design_drawing
+		where id = #{id}
+			
+		
+	</select>												
+	
+	
+	
+</mapper>

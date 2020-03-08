@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+	<appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+		<encoder>
+			<pattern>%d{HH:mm:ss.SSS} %highlight(%-5level) %method - %msg%n</pattern>
+		</encoder>
+	</appender>
+
+	<appender name="ROLLING"
+		class="ch.qos.logback.core.rolling.RollingFileAppender">
+		<file>log/erp-web.txt</file>
+		<rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+			<!-- rollover daily -->
+			<fileNamePattern>log/erp-web-%d{yyyy-MM-dd}.txt</fileNamePattern>
+		</rollingPolicy>
+		<encoder>
+			<pattern>%d{HH:mm:ss.SSS} %thread %-5level %logger - %msg%n</pattern>
+		</encoder>		
+	</appender>
+	<logger name="org.springframework" level="INFO"/>
+	<logger name="org.apache" level="INFO" />
+	<logger name="com.yuhannci.erp" level="DEBUG" />
+	<logger name="org.mybatis.spring" level="INFO" />
+	<logger name="com.zaxxer.hikari" level="INFO" />
+
+	<root level="DEBUG">
+		<appender-ref ref="STDOUT" />
+		<appender-ref ref="ROLLING" />	
+	</root>
+</configuration>

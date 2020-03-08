@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.EquipmentOrderPartMapper">
+
+	<select id="selectParts" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.EquipmentJobOrderPart">
+	
+		select id
+			, equipment_id
+			, deleted
+			, unit_name
+			, design_complete_date
+			, purchase_date
+			, process_date
+			, test_date
+			, assembly_date
+			, program_date
+		from equipment_job_order_unit
+		where deleted = 'N'
+			<if test="equipmentOrderId != null">
+			and equipment_id = #{equipmentOrderId}
+			</if>
+			<if test="orderNo != null">
+			and equipment_id in (select id from equipment_job_order where order_no = #{orderNo})
+			</if>
+		 
+		order by id;
+	</select>
+
+</mapper>

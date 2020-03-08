@@ -1,0 +1,162 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.UserMapper">
+	
+	
+	<!-- 특정 ID 의 이용자 정보 -->
+	<select id="selectUser" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.User">
+	
+		select id
+				,kakao_id
+				,email
+				,name, eng_Name
+				,dept_Code
+				, (select dept_name from dept_data where dept_data.id = user.dept_Code) as deptName
+				, position 
+				, in_Phone, direct_Phone	, hand_Phone
+				, home_Phone, home_Address
+				, join_Date, quit_Date
+				, passport_expire_Date
+				, last_Login
+				, view_Index
+				, is_Admin				
+			from user
+			where
+				id = #{id}
+				<if test="password != null">
+					
+					  and password = sha1(#{password})
+				</if>
+				<if test="existOnly == true">
+					and quit_Date is null
+				</if>
+				
+	</select>
+	
+	<select id="findUser" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.User">
+	
+		select id
+				,kakao_id
+				,email
+				,name, eng_Name
+				,dept_Code
+				, (select dept_name from dept_data where dept_data.id = user.dept_Code) as deptName
+				, position 
+				, in_Phone, direct_Phone	, hand_Phone
+				, home_Phone, home_Address
+				, join_Date, quit_Date
+				, passport_expire_Date
+				, last_Login
+				, view_Index
+				, is_Admin				
+			from user
+			where
+				quit_Date is null and
+				<choose>
+					<when test="key == 'name'" >
+						name like concat('%', #{text}, '%')		
+					</when>
+					<when test="key == 'dept'" >
+						dept_code in (select id from dept_data where dept_name like concat('%', #{text}, '%') )
+					</when>
+					<otherwise>
+						(name like concat('%', #{text}, '%') or dept_code in (select id from dept_data where dept_name like concat('%', #{text}, '%') ))
+					</otherwise>
+				</choose>
+		
+	</select>
+	
+	<select id="selectUserRoles" parameterType="HashMap" resultType="String">
+		select role_id
+			from user_role_mapping where user_id = #{userId}	
+	</select>
+	
+	<select id="selectBusinessDeptUserList" resultType="com.yuhannci.erp.model.KeyValueEntry">
+	
+		select id as `key`, name as value
+			from user
+			where dept_code = 'TS' and is_out = 'N' and is_out = 'N';
+	
+	</select>
+	<select id="selectDesignDeptUserList" resultType="com.yuhannci.erp.model.KeyValueEntry">
+	
+		select id as `key`, name as value
+			from user
+			where dept_code = 'T1' and is_out = 'N' and is_out = 'N';
+	
+	</select>
+	<select id="selectQcDeptUserList" resultType="com.yuhannci.erp.model.KeyValueEntry">
+	
+		select id as `key`, name as value
+			from user
+			where is_qc = 'Y' and is_out = 'N' and is_out = 'N';
+	
+	</select>
+	<select id="selectManagerDeptUserList" resultType="com.yuhannci.erp.model.KeyValueEntry">
+	
+		select id as `key`, name as value
+			from user
+			where dept_code = FN_GetManagerDepartmentCode() and is_out = 'N';
+	
+	</select>
+	<select id="selectAssembleDeptUserList" resultType="com.yuhannci.erp.model.KeyValueEntry">
+	
+		select id as `key`, name as value
+			from user
+			where dept_code = 'AD' and is_out = 'N';
+	</select>
+	<select id="selectPGMUserList" resultType="com.yuhannci.erp.model.KeyValueEntry">
+	
+		select id as `key`, name as value
+			from user
+			where is_pgm = 'Y' and is_out = 'N';
+	
+	</select>
+	<select id="selectRobotUserList" resultType="com.yuhannci.erp.model.KeyValueEntry">
+	
+		select id as `key`, name as value
+			from user
+			where is_robot = 'Y' and is_out = 'N';
+	
+	</select>
+	
+	<select id="selectUserDeptCode" parameterType="HashMap" resultType="String">
+		select dept_code
+			from user where id = #{id}
+	</select>
+	<select id="selectBusinessDeptCode" resultType="String">
+		select FN_GetBusinessDepartmentCode();
+	</select>
+	
+	<select id="getUserData" parameterType="String" resultType="com.yuhannci.erp.model.db.UserData">
+		select 
+		(select dept_name from dept_data where id = d.dept_code) as deptName,
+		d.id, d.dept_code, d.name, d.position
+		from user d
+		where id = #{id}
+	</select>
+	
+	<select id="getUserDataOne" parameterType="String" resultType="com.yuhannci.erp.model.db.UserData">
+		select 
+		(select dept_name from dept_data where id = d.dept_code) as deptName,
+		d.id, d.dept_code, d.name, d.position
+		from user d
+		where id = #{id}
+	</select>
+	
+	<select id="getUserData2" resultType="com.yuhannci.erp.model.db.UserData">
+		select 
+		(select dept_name from dept_data where id = d.dept_code) as deptName,
+		d.id, d.dept_code, d.name, d.position
+		from user d
+	</select>
+	
+	<select id="UserSignPath" parameterType="String" resultType="String">
+		select sign_img_path
+		from user_sign_img
+		where user_id = #{id}
+	</select>
+	
+		
+</mapper>
+ 

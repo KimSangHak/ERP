@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.RegisteredFileMapper">
+
+	<select id="selectFile" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.RegisteredFile">
+	
+		select * 
+			from registered_file
+			<where>
+				<if test="fileNo != null">
+					id = #{fileNo}
+				</if>
+				<if test="fileHash != null">
+					hash = #{fileHash}				
+				</if>
+			</where> 
+			limit 1;
+	</select>
+	
+	<insert id="insertFile" parameterType="com.yuhannci.erp.model.db.RegisteredFile" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+	
+		insert into registered_file
+			(when_registered
+				, user_id
+				, registered_section, file_category
+				, when_deleted
+				, file_size
+				, original_filename
+				, hash)
+			values( now()
+				, #{userId}
+				, #{registeredSection}
+				, #{fileCategory}
+				, #{whenDeleted}
+				, #{fileSize}
+				, #{originalFilename}
+				, sha1(concat(now(), #{userId}, #{originalFilename}))  );
+	
+	</insert>
+
+</mapper>

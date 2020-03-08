@@ -1,0 +1,319 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.PidbackMapper">
+
+	<select id="selectPidbackEntry" parameterType="com.yuhannci.erp.model.PidbackSearchForm" resultType="com.yuhannci.erp.model.db.PidbackEntry">
+	
+	
+		select *,
+
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+			(select name from user where id = d.userId) as usrName,
+			(select count(*) from pid_back_comment where pid_back_id = d.id) as comentCount,
+			(select FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) from job_design_drawing where id = d.job_design_drawing_id) as fdrawingNo
+
+		from pid_back d
+		
+		where d.deleted = 'N'
+		
+	
+	
+			<choose>
+				<when test="DateBegin != null and DateEnd != null">
+					and d.when_created between #{DateBegin} and date_add(#{DateEnd}, interval 1 day)
+				</when>
+				<when test="DateBegin != null">
+					and d.when_created <![CDATA[ >= ]]> #{DateBegin} 
+				</when>
+				<when test="DateEnd != null">
+					and d.when_created <![CDATA[ < ]]> date_add(#{DateEnd}, interval 1 day)
+				</when>
+			</choose>
+			 							
+		
+			<choose>
+				<when test='kind == "D"'>
+					and d.kind = 'D'
+				</when>
+				<when test='kind == "P"'>
+					and d.kind = 'P'
+				</when>
+			</choose>
+						
+			<if test='seq != null and seq != "" and seq != " "'>
+				and d.job_purchase_id = #{seq}
+			</if>
+			
+			<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+				and (select order_no_base from job_design_drawing_id where id = d.job_design_drawing_id) like concat('%', #{orderNoBase}, '%')
+			</if>
+			<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+				and (select orderNoExtra from job_design_drawing where id = d.job_design_drawing_id) like concat('%', #{orderNoExtra}, '%')
+			</if>
+			
+			<if test='drawingNo != null and drawingNo != "" and drawingNo != " "'>
+				and (select drawing_no from job_design_drawing where id = d.job_design_drawing_id) like concat('%', #{drawingNo}, '%')
+			</if>
+			
+			<if test='usrName != null and usrName != "" and usrName != " "'>
+				and (select name from user where id = d.userId) = #{usrName}
+			</if>
+			
+			<if test='title != null and title != "" and title != " "'>
+				and d.title = like concat('%', #{title}, '%')
+			</if>				 
+		
+			<if test="length != null and length != -1">
+				limit #{start}, #{length}
+			</if>
+	
+	</select>
+	
+	<select id="selectPidbackEntryCount" parameterType="com.yuhannci.erp.model.PidbackSearchForm" resultType="Integer">
+	
+	
+		select count(*)
+
+		from pid_back d
+		
+		where d.deleted = 'N'
+		
+	
+	
+			<choose>
+				<when test="DateBegin != null and DateEnd != null">
+					and d.when_created between #{DateBegin} and date_add(#{DateEnd}, interval 1 day)
+				</when>
+				<when test="DateBegin != null">
+					and d.when_created <![CDATA[ >= ]]> #{DateBegin} 
+				</when>
+				<when test="DateEnd != null">
+					and d.when_created <![CDATA[ < ]]> date_add(#{DateEnd}, interval 1 day)
+				</when>
+			</choose>
+			 							
+		
+			<choose>
+				<when test='kind == "A"'>
+					
+				</when>
+				<when test='kind == "D"'>
+					and d.kind = 'D'
+				</when>
+				<when test='kind == "P"'>
+					and d.kind = 'P'
+				</when>
+			</choose>
+						
+			<if test="seq != null">
+				and d.job_purchase_id = #{seq}
+			</if>
+			
+			<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+				and (select order_no_base from job_design_drawing_id where id = d.job_design_drawing_id) like concat('%', #{orderNoBase}, '%')
+			</if>
+			<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+				and (select orderNoExtra from job_design_drawing where id = d.job_design_drawing_id) like concat('%', #{orderNoExtra}, '%')
+			</if>
+			
+			<if test='drawingNo != null and drawingNo != "" and drawingNo != " "'>
+				and (select drawing_no from job_design_drawing where id = d.job_design_drawing_id) like concat('%', #{drawingNo}, '%')
+			</if>
+			
+			<if test='usrName != null and usrName != "" and usrName != " "'>
+				and (select name from user where id = d.userId) = #{usrName}
+			</if>
+			
+			<if test='title != null and title != "" and title != " "'>
+				and d.title = like concat('%', #{title}, '%')
+			</if>				 
+		
+			<if test="length != null and length != -1">
+				limit #{start}, #{length}
+			</if>
+	
+	</select>
+	
+	<select id="getPidbackPurchase" parameterType="HashMap" resultType="com.yuhannci.erp.model.PibackPurchase">
+		select p.id, p.description, p.model_no, p.maker, IFNULL(p.quantity,0) as quantity, IFNULL(p.spare,0) as spare, p.job_order_id,
+			(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = p.job_order_id) as job_order_no
+
+			from job_purchase p
+
+			where p.deleted = 'N'
+			
+			<if test='modelNo != null and modelNo != "" and modelNo != " "'>
+			 	and p.model_no like concat('%', #{modelNo}, '%')
+			</if>
+			
+			<if test='description != null and description != "" and description != " "'>
+			 	and p.description like concat('%', #{description}, '%')
+			</if>
+	
+	</select>
+	
+	<select id="getPidbackDrawing" parameterType="HashMap" resultType="com.yuhannci.erp.model.PidbackDrawing">
+		select 
+			d.id, d.description, d.quantity, d.spare, d.order_id,
+	
+			FN_GetDisplayDrawingNo(d.order_type, d.order_no_base, d.order_no_extra, d.drawing_no) as design_drawing_no,
+			FN_GetDisplayOrderNo(d.order_type, d.order_no_base, d.order_no_extra) as job_order_no,
+			(select device from job_order where id =d.order_id) as device
+	
+			from job_design_drawing d
+			<where>			
+				<if test='orderNoBase != null and orderNoBase != "" and orderNoBase != " "'>
+			 		d.order_no_base like concat(#{orderNoBase}, '%')
+				</if>
+			
+				<if test='orderNoExtra != null and orderNoExtra != "" and orderNoExtra != " "'>
+			 		and d.order_no_extra like concat(#{orderNoExtra}, '%')
+				</if>
+				
+				<if test='drawingNo != null and drawingNo != "" and drawingNo != " "'>
+			 		and d.drawing_no like concat(#{drawingNo}, '%')
+				</if>
+			</where>
+	
+	</select>
+	
+	
+	<insert id="insPidbackDrawing" parameterType="com.yuhannci.erp.model.PidbackInsForm" >
+	
+		insert into pid_back (	
+									job_order_id, 
+									job_design_drawing_id, 
+									userId, 
+									dept, 
+									title, 
+									body, 
+									when_created, 
+									when_updated, 
+									kind)
+			values 
+			
+			( #{orderId}, #{pid},
+						#{userId},
+						#{deptCode}, #{title}, 
+						#{body}, 
+						now(), now(), 
+						#{kind})
+			
+	</insert>
+	
+	<insert id="insPidbackPurchase" parameterType="com.yuhannci.erp.model.PidbackInsForm" >
+	
+		insert into pid_back (	
+									job_order_id, 
+									job_purchase_id, 
+									userId, 
+									dept, 
+									title, 
+									body, 
+									when_created, 
+									when_updated, 
+									kind)
+			values 
+			
+			( #{orderId}, #{pid},
+						#{userId},
+						#{deptCode}, #{title}, 
+						#{body}, 
+						now(), now(), 
+						#{kind})
+			
+	</insert>
+	
+	<select id="getDetailPidback" parameterType="Long" resultType="com.yuhannci.erp.model.db.PidbackEntry">
+		select d.*, 
+		
+		(select FN_GetDisplayOrderNo(order_type, order_no_base, order_no_extra) from job_order where job_order.id = d.job_order_id) as job_order_no,
+		(select FN_GetDisplayDrawingNo(order_type, order_no_base, order_no_extra, drawing_no) from job_design_drawing where id = d.job_design_drawing_id) as fdrawingNo,
+		(select name from user where id = d.userId) as usrName,
+		(select dept_name from dept_data where id = d.dept) as deptName,
+		(select position from user where id = d.userId) as position 
+		
+		from pid_back d 
+		
+		where d.id = #{id}
+	
+	</select>
+	
+	<select id="getCommentPidback" parameterType="Long" resultType="com.yuhannci.erp.model.db.PidbackComment">
+		select c.*,
+		
+		(select name from user where id = c.userId) as usrName
+		
+		from pid_back_comment c
+		
+		where pid_back_id = #{pidBackId} and c.deleted = 'N'
+	
+	</select>
+	
+	<update id="plusViewUpdate" parameterType="Long">
+	
+		update pid_back 
+		set
+			view = (view + 1)
+		where
+			id = #{id}
+	
+	</update>
+	
+	<insert id="addComment" parameterType="HashMap">
+		insert into pid_back_comment 
+			(pid_back_id, small_body, when_created, when_updated, userId)
+		values 
+			(#{id}, #{sbody} ,now() ,now() ,#{userId} )
+	</insert>
+	
+	<update id="configComment" parameterType="HashMap">
+	
+		update pid_back_comment 
+		set
+			small_body = #{stitle},
+			when_updated = now()
+		where
+			id = #{sid}
+	
+	</update>
+	
+	<update id="delteComment" parameterType="Long">
+	
+		update pid_back_comment 
+		set
+			deleted = 'Y',
+			when_updated = now()
+		where
+			id = #{sid}
+	
+	</update>
+	
+	<update id="configPidback" parameterType="HashMap">
+	
+		update pid_back 
+		set
+			title = #{title},
+			body = #{body},
+			when_updated = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	<update id="deletePidback" parameterType="Long">
+	
+		update pid_back 
+		set
+			deleted = 'Y',
+			when_updated = now()
+		where
+			id = #{id}
+	
+	</update>
+	
+	
+	
+	
+
+</mapper>

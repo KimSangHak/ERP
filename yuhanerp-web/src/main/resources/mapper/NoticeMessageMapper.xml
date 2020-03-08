@@ -1,0 +1,64 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.NoticeMessageMapper">
+
+	<insert id="insertNewNoticeMessage" parameterType="com.yuhannci.erp.model.db.NoticeMessage" useGeneratedKeys="true" keyColumn="id" keyProperty="id">
+	
+		insert into notice_message
+			(alarm_type, dept_code, job_order_id, message_type,  when_created, message, device, customer)
+		values
+			(#{alarmType}, #{deptCode}, #{jobOrderId}, #{messageType}, now(), #{message}, #{device} ,#{customer})
+	
+	</insert>
+	
+	<select id="getCustomerNameToNotice" parameterType="Long" resultType="String">
+		select (select name from customer where id = j.customer_id) 
+			from job_order as j 
+			where j.id = #{id};
+	</select>
+	
+	<select id="getDeviceToNotice" parameterType="Long" resultType="String">
+		select device from job_order where id = #{id}
+	</select>
+	
+	<insert id="addOverWorkLeaveNotice" parameterType="com.yuhannci.erp.model.db.NoticeMessage">
+	
+		insert into notice_message
+			(alarm_type, alarm_kind, kind, dept_code, useDate, requestDate,  when_created, message, leaveOverworkId, conformStage)
+		values
+			(#{alarmType}, #{alarmKind}, #{kind}, #{deptCode}, #{useDate}, #{requestDate}, now(), #{message}, #{leaveOverworkId} ,#{conformStage})
+	
+	</insert>
+	
+	<select id="selectConformToNoticeFromLeave" parameterType="Long" resultType="com.yuhannci.erp.model.db.NoticeMessage">
+		select *from notice_message where leaveOverworkId = #{leaveOverworkId} and kind not in('연장근무', '휴일근무') limit 1;
+	</select>
+	
+	<select id="selectConformToNoticeFromOverWork" parameterType="Long" resultType="com.yuhannci.erp.model.db.NoticeMessage">
+		select *from notice_message where leaveOverworkId = #{leaveOverworkId} and kind in('연장근무', '휴일근무') limit 1;
+	</select>
+	
+	<insert id="addRoundRobinNotice" parameterType="com.yuhannci.erp.model.db.NoticeMessage">
+	
+		insert into notice_message
+			(alarm_type, alarm_kind, dept_code, job_order_id, conformStage, device, when_created, message, sumprice, roundNo)
+		values
+			(#{alarmType}, #{alarmKind}, #{deptCode}, #{jobOrderId}, #{conformStage}, #{device}, now(), #{message}, #{sumprice}, #{roundNo})
+	
+	</insert>
+	
+	<select id="selectConformToNoticeFromRoundRobin" parameterType="String" resultType="com.yuhannci.erp.model.db.NoticeMessage">
+		select *from notice_message where roundNo = #{roundNo} limit 1;
+	</select>
+	
+	<insert id="addInnerStockNoticeMsg" parameterType="com.yuhannci.erp.model.db.NoticeMessage">
+	
+		insert into notice_message
+			(alarm_type, alarm_kind, job_order_id, device, when_created, message)
+		values
+			(#{alarmType}, #{alarmKind}, #{jobOrderId}, #{device}, now(), #{message})
+	
+	</insert>
+
+</mapper>
+ 

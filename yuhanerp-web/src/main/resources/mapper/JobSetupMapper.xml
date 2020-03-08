@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.JobSetupMapper">
+	
+	<!-- JobSetup View List -->
+	<select id="selectViewList" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobSetupList">
+		select st.id,
+				FN_GetCustomerName(ord.customer_id) as customer_name,
+				FN_GetDisplayOrderNo(ord.order_type, ord.order_no_base, ord.order_no_extra) as order_full_no,
+				ord.device,
+				ord.customer_user,
+				ord.business_user_id,
+				FN_GetUserName(ord.business_user_id) as business_user_name,
+				FN_GetUserName(ord.design_user_id) as design_user_name,
+				st.work_status,
+				FN_GetTypeName('JobSetupList', st.work_status) as work_status_text,
+				st.expect_buyoff_in_date,
+				st.expect_buyoff_out_date,
+				st.expect_shipping_date,
+				st.expect_finish_date,
+				st.finish_buyoff_in_date,
+				st.finish_buyoff_out_date,
+				st.shipping_date,
+				st.setup_start_date,
+				st.setup_finish_date,
+				st.out_setup_start_date,
+				st.out_setup_finish_date,
+				st.note,
+				st.manager_id,
+				FN_GetUserName(st.manager_id) as manager_name,
+				st.assemble1_id,
+				FN_GetUserName(st.assemble1_id) as assemble1_name,
+				st.assemble2_id,
+				FN_GetUserName(st.assemble2_id) as assemble2_name,
+				st.assemble3_id,
+				FN_GetUserName(st.assemble3_id) as assemble3_name,
+				st.pgm1_id,
+				FN_GetUserName(st.pgm1_id) as pgm1_name,
+				st.pgm2_id,
+				FN_GetUserName(st.pgm2_id) as pgm2_name,
+				st.pgm3_id,
+				FN_GetUserName(st.pgm3_id) as pgm3_name,
+				st.wiring1_id,
+				FN_GetUserName(st.wiring1_id) as wiring1_name,
+				st.wiring2_id,
+				FN_GetUserName(st.wiring2_id) as wiring2_name,
+				st.wiring3_id,
+				FN_GetUserName(st.wiring3_id) as wiring3_name,
+				st.robot1_id,
+				FN_GetUserName(st.robot1_id) as robot1_name,
+				st.robot2_id,
+				FN_GetUserName(st.robot2_id) as robot2_name,
+				st.robot3_id,
+				FN_GetUserName(st.robot3_id) as robot3_name,
+				st.business1_id,
+				FN_GetUserName(st.business1_id) as business1_name,
+				st.business2_id,
+				FN_GetUserName(st.business2_id) as business2_name,
+				st.business3_id,
+				FN_GetUserName(st.business3_id) as business3_name
+			from job_setup as st join job_order as ord
+				on st.order_id=ord.id
+			where work_status!='F'
+			order by setup_start_date;
+	</select>
+	
+	<!-- 조립 시작 -->
+	<insert id="insertJobSetup" parameterType="com.yuhannci.erp.model.db.JobSetup" useGeneratedKeys="true" keyProperty="id" keyColumn="id">
+	
+		insert into job_setup
+		(order_id,
+		work_status,
+		expect_buyoff_in_date,
+		expect_buyoff_out_date,
+		expect_shipping_date,
+		expect_finish_date,
+		manager_id,
+		assemble1_id,
+		assemble2_id,
+		assemble3_id,
+		pgm1_id,
+		pgm2_id,
+		pgm3_id,
+		wiring1_id,
+		wiring2_id,
+		wiring3_id,
+		robot1_id,
+		robot2_id,
+		robot3_id,
+		business1_id,
+		business2_id,
+		business3_id
+		)
+		values
+		(	#{orderId},
+			'R',
+			#{expectBuyoffInDate},
+			#{expectBuyoffOutDate},
+			#{expectShippingDate},
+			#{expectFinishDate},
+			#{managerId},
+			#{assemble1Id},
+			#{assemble2Id},
+			#{assemble3Id},
+			
+			#{pgm1Id},
+			#{pgm2Id},
+			#{pgm3Id},
+			
+			#{wiring1Id},
+			#{wiring2Id},
+			#{wiring3Id},
+			
+			#{robot1Id},
+			#{robot2Id},
+			#{robot3Id},
+			
+			#{business1Id},
+			#{business2Id},
+			#{business3Id}
+		);
+	</insert>
+
+	<!-- 셋업 등록 시 도면 종료 처리 -->
+	<update id="updateJobDesignDrawingFinish" parameterType="HashMap">
+		update job_design_drawing set
+			current_stage = 'Z'
+		where current_stage in ('E', 'F') AND order_id = #{id}
+	</update>
+
+</mapper>

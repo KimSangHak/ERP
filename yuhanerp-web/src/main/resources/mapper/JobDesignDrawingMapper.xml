@@ -1,0 +1,169 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.JobDesignDrawingMapper">
+
+	<sql id="selectFieldsMachine">
+		select draw.id
+		, draw.order_id
+		, FN_GetCustomerName(job.customer_id) as customer_name
+		, job.device
+		
+		, draw.order_type
+		, draw.order_no_base
+		, draw.order_no_extra
+		, draw.drawing_no
+		, FN_GetDisplayOrderNo(draw.order_type, draw.order_no_base, draw.order_no_extra) as jobOrderNo
+		, FN_GetDisplayDrawingNo(draw.order_type, draw.order_no_base, draw.order_no_extra, draw.drawing_no) as design_drawing_no
+		, FN_GetUserName(job.design_user_id) as design_user_name 
+		, description
+		, `dimension`
+		, material
+		, thermal
+		, draw.quantity
+		, draw.spare
+		, postprocessing
+		, classification
+		, reason
+		
+		, checking
+		
+		, draw.note
+
+	    , job.design_date
+
+		, draw.current_stage
+		, work_status
+		, work_quantity
+		, work_position
+		, coating_date
+		, coating_finish_plan_date
+		, hold_reason
+
+		, outsourcing_partner_id		
+		, outsourcing_estimate_request_id
+		, (select request_date from job_partner_outsourcing_order where request_type = 'E' and id = outsourcing_estimate_request_id limit 1) as outsourcingEstimateRequestDate
+		
+		, outsourcing_request_id
+		, (select request_date from job_partner_outsourcing_order where request_type = 'P' and id = outsourcing_request_id limit 1) as outsourcingRequestDate
+						
+		, process_finish_date
+		, process_finish_plan_date
+		, inspect_id
+		, inspect_date
+		, inspect_plan_date
+		, (select result_ok from job_inspect where id = draw.inspect_id) as test_result
+	</sql>
+
+	<!-- 가공 내역 : 모든 도면 리스트 중 설계가 끝난 건 표기 -->
+	<select id="selectDrawingMachine" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+			
+		<include refid="selectFieldsMachine"></include>
+		from job_design_drawing draw inner join job_order job on draw.order_id = job.id
+		where 
+				draw.current_stage = 'B'
+				and work_status = 'R'
+				and process_completed = 'N'
+		
+		<!-- 가공 내역 : 검색조건은 개발자가 추가하시기 바랍니다. -->
+		
+	</select>
+	
+	<select id="selectSpecificDrawings" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+			
+		<include refid="selectFieldsMachine"></include>
+		from job_design_drawing draw inner join job_order job on draw.order_id = job.id
+		where 
+			draw.id in 
+			<foreach collection="IDs" separator="," open="(" close=")" item="id" > 
+				#{id}
+			</foreach>	
+			
+	</select>
+	
+	
+	<select id="selectSpecificDrawingOuts" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobDesignDrawingOutSource">
+			
+		select draw.id
+		, draw.order_id
+		, FN_GetCustomerName(job.customer_id) as customer_name
+		, job.device
+		
+		, draw.order_type
+		, draw.order_no_base
+		, draw.order_no_extra
+		, draw.drawing_no
+		, FN_GetDisplayOrderNo(draw.order_type, draw.order_no_base, draw.order_no_extra) as jobOrderNo
+		, FN_GetDisplayDrawingNo(draw.order_type, draw.order_no_base, draw.order_no_extra, draw.drawing_no) as design_drawing_no
+		, FN_GetUserName(job.design_user_id) as design_user_name 
+		, description
+		, `dimension`
+		, material
+		, thermal
+		, draw.quantity
+		, draw.spare
+		, work_position
+		, postprocessing
+		, process_finish_date
+		, process_finish_plan_date
+		, outs.uid as out_uid
+		from job_design_drawing draw 
+			inner join job_order job on draw.order_id = job.id
+			left outer join job_partner_outsourcing_order outs
+			on (outs.request_type = 'P' and outs.is_receive='N' and outs.job_design_drawing_id = draw.id)
+		where 
+			draw.id in 
+			<foreach collection="IDs" separator="," open="(" close=")" item="id" > 
+				#{id}
+			</foreach>	
+			
+	</select>
+	
+	<select id="selectSingleDesignDrawing" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+			
+		<include refid="selectFieldsMachine"></include>
+		,draw.coating_requested
+		from job_design_drawing draw inner join job_order job on draw.order_id = job.id
+		where 
+			draw.id = #{designDrawingId}
+		
+	</select> 
+
+
+	<select id="selectJobDrawingRecord" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+			
+		<include refid="selectFieldsMachine"></include>
+		from job_design_drawing draw inner join job_order job on draw.order_id = job.id
+		<where>
+			<if test="orderId != null"> 
+				draw.order_id = #{orderId}
+			</if>
+			<if test="classification != null">
+				and classification = #{classification}
+			</if>
+			<if test="reason != null">
+				and reason = #{reason}		
+			</if>
+			<if test="outsourcingEstimateRequestId != null">
+				and outsourcing_estimate_request_id = #{outsourcingEstimateRequestId}
+			</if>
+			<if test="outsourcingRequestId != null">
+				and outsourcing_request_id = #{outsourcingRequestId}
+			</if>
+			
+		</where>
+		order by draw.order_no_base, draw.order_no_extra, draw.drawing_no
+	</select> 
+	
+	<select id="selectJobDesignDrawingArray" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobDesignDrawing">
+	
+		<include refid="selectFieldsMachine"></include>
+		from job_design_drawing draw inner join job_order job on draw.order_id = job.id
+		where
+			draw.id in 
+			<foreach collection="ids" open="(" close=")" separator="," item="id">
+				#{id}
+			</foreach>
+	
+	</select>
+
+</mapper>

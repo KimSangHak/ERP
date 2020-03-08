@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.JobOrderChangeHistoryMapper">
+
+	<insert id="insertHistory" parameterType="HashMap" useGeneratedKeys="true" keyProperty="ret.id" keyColumn="id">
+	
+		insert into job_order_modification_history
+				(	order_type, 
+					job_order_id, 
+					source_category,
+					change_type, 
+					user_id, 
+					when_modified
+				)
+			values( 
+					#{orderType}, 
+					#{jobOrderId},
+					#{sourceCategory},
+					#{changeType},
+					#{userId},
+					now() 
+			);
+	
+	</insert>
+	
+	<insert id="insertValueChangeHistory" parameterType="HashMap">
+		
+		insert into job_order_modified_value
+			(
+				job_order_change_id, 
+				field_name, 
+				`before`, 
+				`after`
+			)
+			values
+			(
+				#{jobOrderChangeId}, 
+				#{fieldName}, 
+				#{before}, 
+				#{after}
+			)
+		
+	</insert>
+	
+	<select id="selectChangeHistory" resultType="com.yuhannci.erp.model.JobOrderModificationEntry">
+		select C.id, C.job_order_id, 
+					C.change_type, 
+					C.user_id, 
+					(select name from user where user.id = C.user_id) as user_name, 
+					C.when_modified,
+					V.field_name,
+					V.`before`,
+					V.`after`					
+			from job_order_modification_history C inner join job_order_modified_value V on C.id = V.job_order_change_id
+			where job_order_id = #{jobOrderId}
+			order by C.id;
+	</select>	
+
+</mapper>

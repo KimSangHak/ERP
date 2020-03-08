@@ -1,0 +1,96 @@
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.yuhannci.erp.mapper.CustomerMapper">
+	
+	<!-- API 용 파트너 리스트 제공용 -->
+	<select id="selectSimpleCustomerList" resultType="com.yuhannci.erp.model.IdNameEntry">
+	
+		select 	
+				id, 
+				name 
+		from customer
+			order by name;
+			
+	</select>
+	
+	<select id="getNextCustomerSequenceNo" resultType="String" parameterType="HashMap">
+	
+		select FN_MakeNextOrderNoBase( #{customerId}, #{isConcept});
+	</select>
+	
+	<select id="selectPartnerList" parameterType="HashMap" resultType="com.yuhannci.erp.model.BillingPartner">
+	
+		select ifnull(B.id, 0)
+				, P.id as partnerId
+				, name as partnerName
+				, B.billing_name
+				, concat( '작성일로부터 ', B.billing_after, ' 뒤 ', B.billing_day ) as payment
+				, region
+				, greatest((select count(*) from partner_billing PB where PB.partner_id = P.id), 1) as billingLines
+			from customer P left outer join partner_billing B on P.id = B.partner_id
+			<choose>
+				<when test="orderBy == 'name'">
+					order by partnerName
+				</when>
+			</choose>			
+			<if test="sortOrder == 'asc'">
+				asc
+			</if>
+			<if test="sortOrder == 'desc'">
+				desc
+			</if>
+			
+		<if test="offset != null">
+
+			limit #{offset}, #{pageSize}
+		</if>
+	</select>
+	
+	<select id="selectPartnerListCount" resultType="Integer">
+		select count(*)
+			from customer P left outer join partner_billing B on P.id = B.partner_id;
+	</select>
+	
+	<select id="selectBuyPartner" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPartner">
+	
+		select id, 
+				'' as buy_type, 
+				partner_name
+			from job_partner
+			<where>
+				<if test="keyword != null">
+					<choose>
+						<when test="category == 'code'">
+							id = #{keyword}
+						</when>
+						<when test="category == 'name'">
+							partner_name like concat('%', #{keyword}, '%')
+						</when>
+					</choose>
+				</if>
+			</where>
+			
+			order by partner_name;					
+	
+	</select>
+	
+	<!-- 
+	<select id="selectBuyPartnerName" parameterType="HashMap" resultType="String">
+	
+		select 
+				partner_name
+			from job_partner
+			where id = #{partnerId}
+	
+	</select>	
+	
+	<select id="selectPartner" parameterType="HashMap" resultType="com.yuhannci.erp.model.db.JobPartner">
+	
+		select *
+			from job_partner
+			where id = #{partnerId}
+	
+	</select>	
+	 -->
+</mapper>
+ 

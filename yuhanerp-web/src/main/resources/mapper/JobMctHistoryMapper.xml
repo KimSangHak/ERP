@@ -1,0 +1,298 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.yuhannci.erp.mapper.JobMctHistoryMapper">
+
+	<!-- 현재는 그냥 select 하고 있으나
+		아래 SubMenu 가 포함된 Top Menu 만 나오도록 수정해야함
+	 -->
+	<select id="selectMctHisAll" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobMctHistory">
+		select 
+			hs.id,
+			dw.order_type, 
+			dw.order_no_base, 
+			dw.order_no_extra, 
+			dw.drawing_no,
+			FN_GetDisplayDrawingNo(dw.order_type, dw.order_no_base, dw.order_no_extra, dw.drawing_no) as drawing_full_no,
+			dw.description,
+			dw.material,
+			dw.thermal,
+			dw.postprocessing,
+			dw.quantity,
+			dw.spare,
+			(select install_date from job_order where id=dw.order_id) as install_date,
+			hs.mct_id,
+			hs.user_id, 
+			FN_GetUserName(hs.user_id) as user_name,
+			hs.start_datetime,
+			hs.end_datetime,
+			TIMESTAMPDIFF(minute, hs.start_datetime, hs.end_datetime) as work_time,
+			hs.work_quantity
+		from job_mct_history as hs
+		inner join job_design_drawing dw
+		on (hs.drawing_id=dw.id)
+		<where>
+			hs.finish_status='F'
+			<if test="orderNoBase != null and orderNoBase != ''"> 
+				and order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''"> 
+				and order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="drawingNo != null and drawingNo != ''">
+				and drawing_no like concat(#{drawingNo}, '%')
+			</if>
+			<if test="mctDateFrom != null and mctDateFrom != ''">
+				and start_datetime &gt;= concat(#{mctDateFrom}, ' 00:00:00')
+			</if>
+			<if test="mctDateTo != null and mctDateTo != ''">
+				and start_datetime &lt;= concat(#{mctDateTo}, ' 23:59:59')
+			</if>
+		</where>
+		order by order_no_base, order_no_extra, drawing_no;
+	</select>
+	<select id="selectMctHisDrawingUser" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobMctHistory">
+		select 
+			dw.order_type, 
+			dw.order_no_base, 
+			dw.order_no_extra, 
+			dw.drawing_no,
+			FN_GetDisplayDrawingNo(dw.order_type, dw.order_no_base, dw.order_no_extra, dw.drawing_no) as drawing_full_no,
+			dw.description,
+			dw.material,
+			dw.thermal,
+			dw.postprocessing,
+			dw.quantity,
+			dw.spare,
+			(select install_date from job_order where id=dw.order_id) as install_date,
+			hs.user_id, 
+			FN_GetUserName(hs.user_id) as user_name,
+			min(hs.start_datetime) as start_datetime,
+			max(hs.end_datetime) as end_datetime,
+			sum(TIMESTAMPDIFF(minute, hs.start_datetime, hs.end_datetime)) as work_time,
+			sum(hs.work_quantity) as work_quantity
+		from job_mct_history as hs
+		inner join job_design_drawing dw
+		on (hs.drawing_id=dw.id)
+		<where>
+			hs.finish_status='F'
+			<if test="orderNoBase != null and orderNoBase != ''"> 
+				and order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''"> 
+				and order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="drawingNo != null and drawingNo != ''">
+				and drawing_no like concat(#{drawingNo}, '%')
+			</if>
+			<if test="mctDateFrom != null and mctDateFrom != ''">
+				and start_datetime &gt;= concat(#{mctDateFrom}, ' 00:00:00')
+			</if>
+			<if test="mctDateTo != null and mctDateTo != ''">
+				and start_datetime &lt;= concat(#{mctDateTo}, ' 23:59:59')
+			</if>
+		</where>
+		group by drawing_id, user_id
+		order by order_no_base, order_no_extra, drawing_no;
+	</select>
+	
+	<select id="selectMctHisDrawingMct" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobMctHistory">
+		select 
+			dw.order_type, 
+			dw.order_no_base, 
+			dw.order_no_extra, 
+			dw.drawing_no,
+			FN_GetDisplayDrawingNo(dw.order_type, dw.order_no_base, dw.order_no_extra, dw.drawing_no) as drawing_full_no,
+			dw.description,
+			dw.material,
+			dw.thermal,
+			dw.postprocessing,
+			dw.quantity,
+			dw.spare,
+			(select install_date from job_order where id=dw.order_id) as install_date,
+			hs.mct_id,
+			min(hs.start_datetime) as start_datetime,
+			max(hs.end_datetime) as end_datetime,
+			sum(TIMESTAMPDIFF(minute, hs.start_datetime, hs.end_datetime)) as work_time,
+			sum(hs.work_quantity) as work_quantity
+		from job_mct_history as hs
+		inner join job_design_drawing dw
+		on (hs.drawing_id=dw.id)
+		<where>
+			hs.finish_status='F'
+			<if test="orderNoBase != null and orderNoBase != ''"> 
+				and order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''"> 
+				and order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="drawingNo != null and drawingNo != ''">
+				and drawing_no like concat(#{drawingNo}, '%')
+			</if>
+			<if test="mctDateFrom != null and mctDateFrom != ''">
+				and start_datetime &gt;= concat(#{mctDateFrom}, ' 00:00:00')
+			</if>
+			<if test="mctDateTo != null and mctDateTo != ''">
+				and start_datetime &lt;= concat(#{mctDateTo}, ' 23:59:59')
+			</if>
+		</where>
+		group by drawing_id, mct_id
+		order by order_no_base, order_no_extra, drawing_no;
+	</select>
+	
+	<select id="selectMctHisOrder" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobMctHistory">
+		select 
+			dw.order_type, 
+			dw.order_no_base, 
+			dw.order_no_extra, 
+			FN_GetDisplayOrderNo(dw.order_type, dw.order_no_base, dw.order_no_extra) as drawing_full_no,
+			(select install_date from job_order where id=dw.order_id) as install_date,
+			min(hs.start_datetime) as start_datetime,
+			max(hs.end_datetime) as end_datetime,
+			sum(TIMESTAMPDIFF(minute, hs.start_datetime, hs.end_datetime)) as work_time,
+			sum(hs.work_quantity) as work_quantity,
+			(select device from job_order where id=dw.order_id) as description
+		from job_mct_history as hs
+		inner join job_design_drawing dw
+		on (hs.drawing_id=dw.id)
+		<where>
+			hs.finish_status='F'
+			<if test="orderNoBase != null and orderNoBase != ''"> 
+				and order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''"> 
+				and order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="drawingNo != null and drawingNo != ''">
+				and drawing_no like concat(#{drawingNo}, '%')
+			</if>
+			<if test="mctDateFrom != null and mctDateFrom != ''">
+				and start_datetime &gt;= concat(#{mctDateFrom}, ' 00:00:00')
+			</if>
+			<if test="mctDateTo != null and mctDateTo != ''">
+				and start_datetime &lt;= concat(#{mctDateTo}, ' 23:59:59')
+			</if>
+		</where>
+		group by order_no_base, order_no_extra
+		order by order_no_base, order_no_extra;
+	</select>
+	
+	<select id="selectMctHisDrawing" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobMctHistory">
+		select 
+			dw.order_type, 
+			dw.order_no_base, 
+			dw.order_no_extra, 
+			dw.drawing_no,
+			FN_GetDisplayDrawingNo(dw.order_type, dw.order_no_base, dw.order_no_extra, dw.drawing_no) as drawing_full_no,
+			dw.description,
+			dw.material,
+			dw.thermal,
+			dw.postprocessing,
+			dw.quantity,
+			dw.spare,
+			(select install_date from job_order where id=dw.order_id) as install_date,
+			min(hs.start_datetime) as start_datetime,
+			max(hs.end_datetime) as end_datetime,
+			sum(TIMESTAMPDIFF(minute, hs.start_datetime, hs.end_datetime)) as work_time,
+			sum(hs.work_quantity) as work_quantity
+		from job_mct_history as hs
+		inner join job_design_drawing dw
+		on (hs.drawing_id=dw.id)
+		<where>
+			hs.finish_status='F'
+			<if test="orderNoBase != null and orderNoBase != ''"> 
+				and order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''"> 
+				and order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="drawingNo != null and drawingNo != ''">
+				and drawing_no like concat(#{drawingNo}, '%')
+			</if>
+			<if test="mctDateFrom != null and mctDateFrom != ''">
+				and start_datetime &gt;= concat(#{mctDateFrom}, ' 00:00:00')
+			</if>
+			<if test="mctDateTo != null and mctDateTo != ''">
+				and start_datetime &lt;= concat(#{mctDateTo}, ' 23:59:59')
+			</if>
+		</where>
+		group by drawing_id
+		order by order_no_base, order_no_extra, drawing_no;
+	</select>
+	
+	<select id="selectMctHisUser" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobMctHistory">
+		select 
+			dw.order_type, 
+			dw.order_no_base, 
+			dw.order_no_extra, 
+			FN_GetDisplayOrderNo(dw.order_type, dw.order_no_base, dw.order_no_extra) as drawing_full_no,
+			(select install_date from job_order where id=dw.order_id) as install_date,
+			hs.user_id,
+			FN_GetUserName(hs.user_id) as user_name,
+			min(hs.start_datetime) as start_datetime,
+			max(hs.end_datetime) as end_datetime,
+			sum(TIMESTAMPDIFF(minute, hs.start_datetime, hs.end_datetime)) as work_time,
+			sum(hs.work_quantity) as work_quantity,
+			(select device from job_order where id=dw.order_id) as description
+		from job_mct_history as hs
+		inner join job_design_drawing dw
+		on (hs.drawing_id=dw.id)
+		<where>
+			hs.finish_status='F'
+			<if test="orderNoBase != null and orderNoBase != ''"> 
+				order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''"> 
+				and order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="drawingNo != null and drawingNo != ''">
+				and drawing_no like concat(#{drawingNo}, '%')
+			</if>
+			<if test="mctDateFrom != null and mctDateFrom != ''">
+				and start_datetime &gt;= concat(#{mctDateFrom}, ' 00:00:00')
+			</if>
+			<if test="mctDateTo != null and mctDateTo != ''">
+				and start_datetime &lt;= concat(#{mctDateTo}, ' 23:59:59')
+			</if>
+		</where>
+		group by order_no_base, order_no_extra, user_id
+		order by order_no_base, order_no_extra, user_id;
+	</select>
+
+	<select id="selectMctHisMct" parameterType="HashMap" resultType="com.yuhannci.erp.model.JobMctHistory">
+		select 
+			dw.order_type, 
+			dw.order_no_base, 
+			dw.order_no_extra, 
+			FN_GetDisplayOrderNo(dw.order_type, dw.order_no_base, dw.order_no_extra) as drawing_full_no,
+			(select install_date from job_order where id=dw.order_id) as install_date,
+			hs.mct_id,
+			min(hs.start_datetime) as start_datetime,
+			max(hs.end_datetime) as end_datetime,
+			sum(TIMESTAMPDIFF(minute, hs.start_datetime, hs.end_datetime)) as work_time,
+			sum(hs.work_quantity) as work_quantity,
+			(select device from job_order where id=dw.order_id) as description
+		from job_mct_history as hs
+		inner join job_design_drawing dw
+		on (hs.drawing_id=dw.id)
+		<where>
+			hs.finish_status='F'
+			<if test="orderNoBase != null and orderNoBase != ''"> 
+				and order_no_base = #{orderNoBase}
+			</if>
+			<if test="orderNoExtra != null and orderNoExtra != ''"> 
+				and order_no_extra like concat(#{orderNoExtra}, '%')
+			</if>
+			<if test="drawingNo != null and drawingNo != ''">
+				and drawing_no like concat(#{drawingNo}, '%')
+			</if>
+			<if test="mctDateFrom != null and mctDateFrom != ''">
+				and start_datetime &gt;= concat(#{mctDateFrom}, ' 00:00:00')
+			</if>
+			<if test="mctDateTo != null and mctDateTo != ''">
+				and start_datetime &lt;= concat(#{mctDateTo}, ' 23:59:59')
+			</if>
+		</where>
+		group by order_no_base, order_no_extra, mct_id
+		order by order_no_base, order_no_extra, mct_id;
+	</select>
+</mapper>
